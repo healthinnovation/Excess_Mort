@@ -38,20 +38,89 @@ source("excess_functions.R")
   W.peru      <- nb2mat(peru.adj, style = "W") 
   
   
-  
+ 
+
+
+# Avanza por dimensiones
+# 0. DUMMIES POR CORTES HORARIOS 
+
+# Theory driven :  NO SON EXCLUYENTES 
+# 1. temporal          rw1 rw2    
+# 2.espacial           bym
+# 3.climatofologica     rw1 rw2  (Knots)
+# 4. socio/economica  # 6 dimensiones 
+
+ejm 1) temporal
+    2) t / espacial 
+    3) t/ sp / clima 
+    4) t/sp / cl / socio eco
+    
+    
+
+# Posteriomente
+# data driven 
+ # dic / waic
+
+# dimension temporal (  PROBAR SI CONVERGE )
 list_excess_m_1.n.1.0<-c( 
   
   
-            formula =  n ~  group_age_41_60                       +
+            formula =  n ~    group_age_41_60                       +
                               group_age_61_80                     +
-                              group_age_81_more                   +
-                              f(week,model="rw1")                 +
-                              f(inla.group(prcp),model="rw1")     +
-                              f(inla.group(temp),model="rw1")     +
-                              f(id.sp,model="bym",graph=W.peru)   + 
+                              group_age_81_more                   + #  O MOVER 
+                              f(week,model="rw1")                 ,  rw1/rw2  
+
+                              
+                       formula =  n ~    group_age_41_60                       +
+                              group_age_61_80                     +
+                              group_age_81_more                   + #  NO MOVER 
+                              f(week,model="rw2")                  rw1/rw2  # NO DEJAR COMA AL FINAL
+                   
+                  
+
+)
+
+# Avanza desde aca dimension espacio/ temporal 
+list_excess_m_1.n.2.0<-c( 
+  
+  
+            formula =  n ~    group_age_41_60                       +
+                              group_age_61_80                     +
+                              group_age_81_more                   + #  O MOVER 
+                              f(week,model="rw1")                 +  rw1/rw2  
+                               f(id.sp,model="bym",graph=W.peru) ,
+                                                           
+                       formula =  n ~    group_age_41_60                       +
+                              group_age_61_80                     +
+                              group_age_81_more                   + #  NO MOVER 
+                              f(week,model="rw2")                  rw1/rw2  # NO DEJAR COMA AL FINAL
+                             f(id.sp,model="bym",graph=W.peru) 
+                  
+
+)
+
+# Dimension cllma 
+# 3 
+                              f(inla.group(prcp),model="rw1")     +  rw1/rw2
+                              f(inla.group(temp),model="rw1")     +  rw1/rw2
+
+
+
+
+list_excess_m_1.n.1.0<-c( 
+  
+  
+            formula =  n ~    group_age_41_60                       +
+                              group_age_61_80                     +
+                              group_age_81_more                   + #  NO MOVER 
+                              f(week,model="rw1")                 +  rw1/rw2
+                              f(inla.group(prcp),model="rw1")     +  rw1/rw2
+                              f(inla.group(temp),model="rw1")     +  rw1/rw2
+                              f(id.sp,model="bym",graph=W.peru)   +  bym                  (/ besagproper)
                               pr_pov_2018                         +
                               pr_edu_inf_25                       +
-                              pr_no_bl_mz,
+                              pr_no_bl_mz                         +
+                              nueva_variable, # de 6 no pases 
    
           formula =  n ~  group_age_41_60                         +
                               group_age_61_80                     +
@@ -79,6 +148,7 @@ list_excess_m_1.n.1.0<-c(
           
           )
 
+# Por cada LISTA  adaptar desde 139 hasta 148 ! 
 names(list_excess_m_1.n.1.0)<-list_excess_m_1.n.1.0
 
 tic()
@@ -89,5 +159,17 @@ toc()
 
 
 saveRDS(test_excess_1.n.1.m,"test_excess_1_n_1_0_excess_m_2021.rds") #m for men / wm for women
+
+
+
+summary(test_excess_1.n.1.m[[1]])
+# 4 vars : 4 dim
+# 8 vars : 2 dim # sobreidentificacion
+# 6 vars: 6 dim 
+summary(test_excess_1.n.1.m[[2]])
+summary(test_excess_1.n.1.m[[3]])
+
+
+
 ```
 
