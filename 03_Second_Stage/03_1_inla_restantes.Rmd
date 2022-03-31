@@ -1,0 +1,93 @@
+---
+title: "03_INLA_restantes"
+author: "Et al"
+date: "30/3/2022"
+output: html_document
+---
+
+
+# Packages 
+
+```{r,message=F,warning=F}
+
+library(tidyverse) # Tools for data manipulation 
+library(innovar)   # Peru map 
+library(INLA)      # Modelling second stage 
+library(sf)
+library(sp)
+library(spdep)
+library(inlabru)   # First stage of methods
+library(lubridate) # Date data manipulation 
+library(recipes)   # Generate Dummy's 
+library(tictoc)
+
+```
+
+
+
+```{r,echo=F,message=F,warning=F}
+# Choose the dataset 
+
+db.men.post_2020                <-readRDS("db_men_full_2021.rds") 
+source("excess_functions.R")
+
+  peru.shp    <-readRDS("peru_prov.rds")
+  # Creating the neighborhood structure 
+  peru.adj    <- poly2nb(peru.shp)
+  # Spatial weights
+  W.peru      <- nb2mat(peru.adj, style = "W") 
+  
+  
+  
+list_excess_m_1.n.1.0<-c( 
+  
+  
+            formula =  n ~  group_age_41_60                       +
+                              group_age_61_80                     +
+                              group_age_81_more                   +
+                              f(week,model="rw1")                 +
+                              f(inla.group(prcp),model="rw1")     +
+                              f(inla.group(temp),model="rw1")     +
+                              f(id.sp,model="bym",graph=W.peru)   + 
+                              pr_pov_2018                         +
+                              pr_edu_inf_25                       +
+                              pr_no_bl_mz,
+   
+          formula =  n ~  group_age_41_60                         +
+                              group_age_61_80                     +
+                              group_age_81_more                   +
+                              f(week,model="rw2")                 +
+                              f(inla.group(prcp),model="rw1")     +
+                              f(inla.group(temp),model="rw1")     +
+                              f(id.sp,model="bym",graph=W.peru)   + 
+                              pr_pov_2018                         +
+                              pr_edu_inf_25                       +
+                              pr_no_bl_mz,
+          
+          formula =  n ~  group_age_41_60                         +
+                              group_age_61_80                     +
+                              group_age_81_more                   +
+                              f(week,model="rw2")                 +
+                              f(inla.group(prcp),model="rw1")     +
+                              f(inla.group(temp),model="rw1")     +
+                              f(inla.group(nodos),model="rw2")    +
+                              f(id.sp,model="bym",graph=W.peru)   +
+                              pr_pov_2018                         +
+                              pr_edu_inf_25                       +
+                              pr_no_bl_mz
+        
+          
+          )
+
+names(list_excess_m_1.n.1.0)<-list_excess_m_1.n.1.0
+
+tic()
+test_excess_1.n.1.m<-list_excess_m_1.n.1.0 %>% 
+                             purrr::map(~inla.batch.predict.bru.safe(formula = .,
+                                                             dat1 = db.men.post_2020))
+toc()
+
+
+saveRDS(test_excess_1.n.1.m,"test_excess_1_n_1_0_excess_m_2021.rds")
+```
+
