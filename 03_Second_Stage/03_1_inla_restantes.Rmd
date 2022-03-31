@@ -28,7 +28,7 @@ library(tictoc)
 ```{r,echo=F,message=F,warning=F}
 # Choose the dataset 
 
-db.men.post_2020                <-readRDS("db_men_full_2021.rds") 
+db.men.post_2020                <-readRDS("db_men_full_2021.rds")  # bd men 2020  and women 2020 ( Jesus )      | men 2021   / women 2021 (Braulio)
 source("excess_functions.R")
 
   peru.shp    <-readRDS("peru_prov.rds")
