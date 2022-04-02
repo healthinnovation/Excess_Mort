@@ -170,6 +170,8 @@ summary(test_excess_1.n.1.m[[2]])
 summary(test_excess_1.n.1.m[[3]])
 
 
+test_excess_1.n.1.m[[2]]$dic$dic --> dic del modelo general 
+
 
 ```
 
