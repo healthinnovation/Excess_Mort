@@ -159,8 +159,9 @@ test_excess_1.n.1.m<-list_excess_m_1.n.1.0 %>%
                                                              dat1 = db.men.post_2021)) # men women
 toc()
 
-
-saveRDS(test_excess_1.n.1.m,"test_excess_1_n_1_0_excess_m_2021.rds") #m for men / wm for women
+#0 stan
+#1 no stan
+saveRDS(test_excess_1.n.1.m,"test_excess_4_100_0_excess_m_2021.rds") #m for men / wm for women
 
 
 
