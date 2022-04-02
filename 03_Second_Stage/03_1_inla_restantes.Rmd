@@ -21,6 +21,8 @@ library(lubridate) # Date data manipulation
 library(recipes)   # Generate Dummy's 
 library(tictoc)
 
+# para instalar INLA install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) 
+
 ```
 
 
@@ -171,6 +173,7 @@ summary(test_excess_1.n.1.m[[3]])
 
 
 test_excess_1.n.1.m[[2]]$dic$dic --> dic del modelo general 
+
 
 
 ```
