@@ -1,0 +1,272 @@
+---
+title: "03_Figures"
+author: "Braulio Arteaga"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    theme: united
+toc-title: "Tabla de contenido"
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = F, echo = T,
+                      results = "hide", error = F, warning = F, message = F)
+```
+
+
+## 1. Librerías
+
+Llamando a las librerías que se utilizarán:
+```{r}
+library(tidyverse) #data manipulation
+library(sf)  #spatial data handling
+library(viridis) #scale color | Fuente:https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
+library(ggthemes) #theme_map
+library(gridExtra) #multiple graphics in ggplot2
+library(ggpubr) #multiple graphics in ggplot2
+```
+
+
+## 2. Directorio de trabajo
+
+Se establece el directorio de trabajo:
+```{r}
+main_directory <-  "C:/Users/braul/Desktop/05_personal_projects/07_Voluntariados/Vol01_InnovaLab/03_excess_mortality/db_SINADEF"
+input   <- paste(main_directory, sep="", "/2. Input") 
+output  <- paste(main_directory, sep="", "/6. Output")
+figures <- paste(output, sep="", "/figures")
+tables  <- paste(output, sep="", "/tables")
+```
+
+
+## 3. Importacion
+
+```{r}
+death_men <- readRDS(file.path(output, "death_men_complete_G2_2021-12-31.rds"))
+death_women <- readRDS(file.path(output, "death_women_complete_G2_2021-12-31.rds"))
+shape_innova <- readRDS(file.path(input, "peru_shp_2.rds"))
+shape_innova_prov <-  shape_innova %>% group_by(reg, prov) %>% summarise()
+```
+
+
+## 4. Manipulación de datos
+### 4.1. Hombres
+Agrupando la data de muertes en hombres:
+```{r}
+dm_prov_y    <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, sex, population) %>% summarise(n = sum(n)) %>% 
+                                                 group_by(reg, prov, year, sex)             %>% summarise(n = sum(n), population = sum (population)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+
+dm_prov_y_ga <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, sex, group_age, population) %>% summarise(n = sum(n)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+
+dm_prov_w    <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, week, sex, population) %>% summarise(n = sum(n)) %>%
+                                                 group_by(reg, prov, year, week, sex)             %>% summarise(n=sum(n), population=sum (population)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+dm_prov_w_ga <- death_men
+```
+
+Añadiendo shapefiles
+```{r}
+dm_prov_y <- shape_innova_prov %>%  
+  left_join(dm_prov_y, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_y))
+
+dm_prov_y_ga <- shape_innova_prov %>%  
+  left_join(dm_prov_y_ga, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_y_ga))
+
+dm_prov_w <- shape_innova_prov %>%  
+  left_join(dm_prov_w, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_w))
+```
+
+
+### 4.2. Mujeres
+Agrupando la data de muertes en mujeres:
+```{r}
+dw_prov_y    <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, sex, population) %>% summarise(n = sum(n)) %>% 
+                                                   group_by(reg, prov, year, sex)             %>% summarise(n = sum(n), population = sum (population)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+
+dw_prov_y_ga <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, sex, group_age, population) %>% summarise(n = sum(n)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+
+dw_prov_w    <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, week, sex, population) %>% summarise(n = sum(n)) %>%
+                                                   group_by(reg, prov, year, week, sex)             %>% summarise(n=sum(n), population=sum(population)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+dw_prov_w_ga <- death_women
+```
+
+Añadiendo shapefiles
+```{r}
+dw_prov_y <- shape_innova_prov %>%  
+  left_join(dw_prov_y, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_y))
+
+dw_prov_y_ga <- shape_innova_prov %>%  
+  left_join(dw_prov_y_ga, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_y_ga))
+
+dw_prov_w <- shape_innova_prov %>%  
+  left_join(dw_prov_w, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_w))
+```
+
+
+## 5. Gráficas 
+### 5.1. Mapa coroplético
+#### 5.1.1. Hombres  
+Construyendo el mapa
+
+```{r}
+map_m_y     <-    ggplot(dm_prov_y) + 
+                  geom_sf(aes(fill = rate_n), size = 0.005, color = "black") +
+                  labs(title = "Tasa de mortalidad en hombres") + 
+                  #caption = "Fuente: SINADEF / Elaboración propia") +
+                  scale_fill_viridis( option = "viridis", #viridis, rocket, plasma, magma,etc
+                                      name = "Tasa de mortalidad\npor cada 100 000 hab",
+                                      alpha = 1, # alpha transparency
+                                      begin = 0.1,
+                                      end = 0.9,
+                                      direction = -1,
+                                      limits=c(0, 1800)) +
+                  scale_color_brewer(palette = "Reds") +
+                  facet_wrap(vars(year)) +
+                  theme_map() +
+                  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 14), #título del gráfico
+                        strip.text = element_text(face = "bold", size = rel(0.90)), #faceta #080C69 #737373
+                        strip.background = element_rect(fill = "transparent", colour = "transparent", size = 0), #faceta
+                        legend.position = c(.75,.01) ,  #leyenda
+                        legend.title = element_text(size=8), #leyenda
+                        legend.background = element_rect(fill='transparent')) #leyenda 
+
+map_m_y 
+
+
+map_m_y_2   <-    map_m_y + scale_fill_distiller(palette = "Reds", 
+                                                 direction = 1,
+                                                 limits  = c(0, 1800),  
+                                                 name    = "Tasa de mortalidad\npor cada 100 000 hab") #Reds, RdPu,YIGn, Purples  #scale_*_brewer() for a discrete variable
+map_m_y_2
+```
+
+Guardando el mapa
+```{r}
+ggsave(plot = map_m_y,     filename =  "map_men_2017_2021_v1.jpg", path = figures, dpi = 300)
+ggsave(plot = map_m_y_2,   filename =  "map_men_2017_2021_v2.jpg", path = figures, dpi = 300)
+```
+
+#### 5.1.2. Mujeres 
+Construyendo el mapa
+```{r}
+map_w_y     <-    ggplot(dw_prov_y) + 
+                  geom_sf(aes(fill = rate_n), size = 0.005, color = "black") +
+                  labs(title = "Tasa de mortalidad en mujeres") + 
+                       #caption = "Fuente: SINADEF / Elaboración propia") +
+                  scale_fill_viridis( option = "viridis", #viridis, rocket, plasma, magma,etc
+                                      name = "Tasa de mortalidad\npor cada 100 000 hab",
+                                      alpha = 1, # alpha transparency
+                                      begin = 0.1,
+                                      end = 0.9,
+                                      direction = -1,
+                                      limits=c(0, 1800)) +
+                  scale_color_brewer(palette = "Reds") +
+                  facet_wrap(vars(year)) +
+                  theme_map() +
+                  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 14), #título del gráfico
+                        strip.text = element_text(face = "bold", size = rel(0.90)), #faceta #080C69 #737373
+                        strip.background = element_rect(fill = "transparent", colour = "transparent", size = 0), #faceta
+                        legend.position = c(.75,.01) ,  #leyenda
+                        legend.title = element_text(size=8), #leyenda
+                        legend.background = element_rect(fill='transparent')) #leyenda 
+
+map_w_y
+
+map_w_y_2   <-    map_w_y + scale_fill_distiller(palette = "Reds", 
+                                                 direction = 1,
+                                                 limits  = c(0, 1800),  
+                                                 name    = "Tasa de mortalidad\npor cada 100 000 hab") #Reds, RdPu,YIGn, Purples  #scale_*_brewer() for a discrete variable
+map_w_y_2
+```
+
+Guardando el mapa
+```{r}
+ggsave(plot = map_w_y,   filename =  "map_women_2017_2021_v1.jpg", path = figures, dpi = 300)
+ggsave(plot = map_w_y_2, filename =  "map_women_2017_2021_v2.jpg", path = figures, dpi = 300)
+```
+`
+### 5.2. Temporal
+
+#### 5.2.1. General 
+Gráfica 1: Muertes a nivel nacional
+```{r}
+temp_g_n  <-    ggplot( st_drop_geometry(rbind(death_men, death_women)) %>% group_by(year,week,date) %>%  summarise(n = sum(n)) ) + 
+                labs(title = "El número de muertes a nivel nacional, 2017-2021") +
+                ylab("death") +
+                geom_line(aes(date,n),color="darkblue") + 
+                geom_vline(xintercept = as.numeric(as.Date("2020-02-17")), linetype="dotted", color = "red", size=1) +
+                theme_bw()
+temp_g_n
+```
+
+#### 5.2.2. Hombres
+Gráfica 1: Muertes a nivel nacional por grupo etáreo
+````{r}
+temp_m_n  <-    ggplot( st_drop_geometry(death_men) %>% group_by(year,week,date) %>%  summarise(n = sum(n)) ) + 
+                labs(title = "El número de muertes en hombres a nivel nacional, 2017-2021") + 
+                ylab("death") +
+                geom_line(aes(date,n),color="darkblue")      +
+                geom_vline(xintercept = as.numeric(as.Date("2020-02-17")), linetype="dotted", color = "red", size=1) +
+                theme_bw()
+temp_m_n
+```
+
+Gráfica 2: Muertes a nivel nacional por grupo etáreo
+```{r}
+temp_m_n_ge <-  ggplot( st_drop_geometry(death_men) %>% group_by(year,week,date, group_age) %>%  summarise(n = sum(n)) , 
+                        aes(x = date, y = n, color = group_age, group = group_age))  + 
+                labs(title = "El número de muertes en hombres a nivel nacional por grupo etáreo, 2017-2021") +
+                ylab("death") +
+                geom_line()   + 
+                geom_vline(xintercept = as.numeric(as.Date("2020-02-17")), linetype="dotted", color = "black", size=1) +
+                theme_bw()
+temp_m_n_ge
+```
+
+
+#### 5.2.2. Mujeres
+Gráfica 1: Muertes a nivel nacional
+```{r}
+temp_w_n  <-       ggplot( st_drop_geometry(death_women) %>% group_by(year,week,date) %>%  summarise(n = sum(n)) ) + 
+                  labs(title = "El número de muertes en mujeres a nivel nacional, 2017-2021") +
+                  ylab("death") +
+                  geom_line(aes(date,n),color="darkblue")      + 
+                  geom_vline(xintercept = as.numeric(as.Date("2020-02-17")), linetype="dotted", color = "red", size=1) +
+                  theme_bw()
+temp_w_n
+```
+
+Gráfica 2: Muertes a nivel nacional por grupo etáreo
+```{r}
+temp_w_n_ge <- ggplot( st_drop_geometry(death_women) %>% group_by(year,week,date, group_age) %>%  summarise(n = sum(n)) , 
+                     aes(x = date, y = n, color = group_age, group = group_age))  + 
+               labs(title = "El número de muertes en mujeres a nivel nacional por grupo etáreo, 2017-2021") +
+               ylab("death") +
+               geom_line()   + 
+               geom_vline(xintercept = as.numeric(as.Date("2020-02-17")), linetype="dotted", color = "black", size=1) +
+               theme_bw()
+temp_w_n_ge
+```
+
+#### 5.2.3. Guardando gráficos temporales 
+```{r}
+ggsave(plot = temp_g_n,     filename =  "temporal_gral_2017_2021.jpg",            path = figures, dpi = 300)
+
+ggsave(plot = temp_m_n,     filename =  "temporal_men_2017_2021.jpg",             path = figures, dpi = 300)
+ggsave(plot = temp_m_n_ge,  filename =  "temporal_men_group_age_2017_2021.jpg",   path = figures, dpi = 300)
+
+ggsave(plot = temp_w_n,     filename =  "temporal_women_2017_2021.jpg",           path = figures, dpi = 300)
+ggsave(plot = temp_w_n_ge,  filename =  "temporal_women_group_age_2017_2021.jpg", path = figures, dpi = 300)
+```
