@@ -156,15 +156,17 @@ table2_2020_2021        <-      rbind(men_full_2020 %>%   dplyr::select(reg, pro
                                       women_full_2020 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp),
                                       men_full_2021 %>%   dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
                                       women_full_2021 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp)) %>% 
-                                group_by(year, group_age) %>% summarise(MoMo_Excess_Deaths_N = round(sum(n) - sum(E)), COVID_19_Deaths_N = sum(n), 
-                                                                        Ratio_Momo_COVID_19_Deaths  = round((sum(n) - sum(E))/sum(n),2)) %>% 
+                                group_by(year, group_age) %>% summarise(MoMo_Excess_Deaths_N = round(sum(n) - sum(E)), COVID_19_Deaths_N = sum(n)) %>% 
                                                               bind_rows(summarise(., across(where(is.numeric), sum),
                                                                                      across(where(is.character), ~"all"))) %>% 
                                                               mutate(Age_Group = case_when(group_age ==  "40_less" ~ "0-40", 
                                                                                            group_age ==  "41_60" ~   "41-60", 
                                                                                            group_age ==  "61_80" ~   "61-80",
                                                                                            group_age ==  "81_more" ~ "Older-81",
-                                                                                           TRUE ~ group_age), Period = year) %>% ungroup %>% 
+                                                                                           TRUE ~ group_age), 
+                                                                     Period = year,
+                                                                     Ratio_Momo_COVID_19_Deaths =  round(MoMo_Excess_Deaths_N/COVID_19_Deaths_N,2)) %>% 
+                                                              ungroup %>% 
                                                               dplyr::select(Period, Age_Group, MoMo_Excess_Deaths_N, COVID_19_Deaths_N,
                                                                             Ratio_Momo_COVID_19_Deaths) %>% 
                                                               arrange(Period)
@@ -189,19 +191,30 @@ table3_2020_2021  <- rbind(women_full_2020 %>% mutate (pr_obes = as.numeric(NA),
 
 Elaborando la tabla 3
 ```{r}
-skim <- skim_with(numeric = sfl(max = ~ max(., na.rm = TRUE), min = ~ min(., na.rm = TRUE), median = ~ median(., na.rm = TRUE)), append = TRUE)
+skim <- skim_with(numeric = sfl(max = ~ max(., na.rm = TRUE), min = ~ min(., na.rm = TRUE)), append = TRUE)
 
 table3 <- table3_2020_2021 %>% dplyr::select(n, pr_edu_inf_25,pr_no_bl_mz, pr_insu, 
                                              pr_liv_oth_distr, pr_edu_oth_distr, pr_one_hab, 
                                              INEI_prop_No_techo_concreto, pr_obes, pr_tos)  %>%  
                                skim() %>% 
-                               dplyr::select(-c(numeric.hist, skim_type,n_missing, complete_rate, numeric.p0)) %>% 
-                               relocate(numeric.median, numeric.sd, numeric.min, numeric.max, .after = numeric.mean) %>% 
-                               rename(Variable = skim_variable, Mean = numeric.mean, Standard_deviation = numeric.sd,
-                                      Percentile_25th = numeric.p25, Percentile_50th = numeric.p50,
-                                      Percentile_75th = numeric.p75, Percentile_100th = numeric.p100,
-                                      Maximum = numeric.max, Minimum = numeric.min, Median = numeric.median) %>%
-                               mutate_each(funs(round(.,2)),2:10)
+                               mutate(Variable = case_when(skim_variable == "n" ~ "Number of deaths",
+                                                           skim_variable == "pr_edu_inf_25"               ~ "Prp. of  25 year people  with only school completed", 
+                                                           skim_variable == "pr_no_bl_mz"                 ~ "Prp. of people neither mestizo nor white", 
+                                                           skim_variable == "pr_insu"                     ~ "Prp. of insured people", 
+                                                           skim_variable == "pr_liv_oth_distr"            ~ "Prp. of people who have moved house", 
+                                                           skim_variable == "pr_edu_oth_distr"            ~ "Prp. of people with educational centers in another district", 
+                                                           skim_variable == "pr_one_hab"                  ~ "Prp. of household with only one hab", 
+                                                           skim_variable == "INEI_prop_No_techo_concreto" ~ "Prp. of households without a concrete roof", 
+                                                           skim_variable == "pr_obes"                     ~ "Prp. of people with obesity ",
+                                                           skim_variable == "pr_tos"                      ~ "Prp. of people with tos",
+                                                           TRUE ~ "F")) %>% 
+                               dplyr::select(-c(skim_variable, numeric.hist, skim_type,n_missing, complete_rate, numeric.p0, numeric.p100)) %>% 
+                               relocate(Variable, numeric.mean,numeric.p50, numeric.sd, numeric.min, numeric.max, .before = numeric.p25) %>%
+                               rename(Mean = numeric.mean, Standard_deviation = numeric.sd,
+                                      Percentile_25th = numeric.p25, Median = numeric.p50,
+                                      Percentile_75th = numeric.p75,
+                                      Maximum = numeric.max, Minimum = numeric.min) %>% 
+                               mutate_each(funs(round(.,2)),2:8)
                               
 ```
 
