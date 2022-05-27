@@ -1,0 +1,798 @@
+---
+title: "03_Spacial_Analysis"
+author: "Braulio Arteaga"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    theme: united
+toc-title: "Tabla de contenido"
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = F, echo = T,
+                      results = "hide", error = F, warning = F, message = F)
+```
+
+## 1. Librerías
+
+Llamando a las librerías que se utilizarán:
+```{r}
+library(tidyverse) #data manipulation
+library(sf)  #spatial data handling
+library(broom) #store htest to tidy
+library(spdep) #testmoran
+```
+
+
+## 2. Directorio de trabajo
+
+Se establece el directorio de trabajo:
+```{r}
+main_directory <-  "C:/Users/braul/Desktop/05_personal_projects/07_Voluntariados/Vol01_InnovaLab/03_excess_mortality/db_SINADEF"
+input   <- paste(main_directory, sep="", "/2. Input") 
+output  <- paste(main_directory, sep="", "/6. Output")
+figures <- paste(output, sep="", "/figures")
+tables  <- paste(output, sep="", "/tables")
+moran   <- paste(output, sep="", "/test_moran_global")
+```
+
+
+## 3. Importación
+
+Importación de los datasets:
+```{r}
+death_men <- readRDS(file.path(output, "death_men_complete_G2_2021-12-31.rds"))
+death_women <- readRDS(file.path(output, "death_women_complete_G2_2021-12-31.rds"))
+shape_innova <- readRDS(file.path(input, "peru_shp_2.rds"))
+shape_innova_prov <-  shape_innova %>% group_by(reg, prov) %>% summarise()
+```
+
+
+## 4. Manipulación de datos
+### 4.1. Hombres
+Agrupando la data de muertes en hombres:
+```{r}
+dm_prov_y    <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, sex, population) %>% summarise(n = sum(n)) %>% 
+                                                 group_by(reg, prov, year, sex)             %>% summarise(n = sum(n), population = sum (population)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+
+dm_prov_y_ga <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, sex, group_age, population) %>% summarise(n = sum(n)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+
+dm_prov_w    <-  st_drop_geometry(death_men) %>% group_by(reg, prov, year, week, sex, population) %>% summarise(n = sum(n)) %>%
+                                                 group_by(reg, prov, year, week, sex)             %>% summarise(n=sum(n), population=sum (population)) %>% 
+                                                 mutate(rate_n = (n/population)*100000)
+dm_prov_w_ga <- death_men
+```
+
+Añadiendo shapefiles
+```{r}
+dm_prov_y <- shape_innova_prov %>%  
+  left_join(dm_prov_y, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_y))
+
+dm_prov_y_ga <- shape_innova_prov %>%  
+  left_join(dm_prov_y_ga, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_y_ga))
+
+dm_prov_w <- shape_innova_prov %>%  
+  left_join(dm_prov_w, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dm_prov_w))
+```
+
+
+### 4.2. Mujeres
+Agrupando la data de muertes en mujeres:
+```{r}
+dw_prov_y    <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, sex, population) %>% summarise(n = sum(n)) %>% 
+                                                   group_by(reg, prov, year, sex)             %>% summarise(n = sum(n), population = sum (population)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+
+dw_prov_y_ga <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, sex, group_age, population) %>% summarise(n = sum(n)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+
+dw_prov_w    <-  st_drop_geometry(death_women) %>% group_by(reg, prov, year, week, sex, population) %>% summarise(n = sum(n)) %>%
+                                                   group_by(reg, prov, year, week, sex)             %>% summarise(n=sum(n), population=sum(population)) %>% 
+                                                   mutate(rate_n = (n/population)*100000)
+dw_prov_w_ga <- death_women
+```
+
+Añadiendo shapefiles
+```{r}
+dw_prov_y <- shape_innova_prov %>%  
+  left_join(dw_prov_y, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_y))
+
+dw_prov_y_ga <- shape_innova_prov %>%  
+  left_join(dw_prov_y_ga, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_y_ga))
+
+dw_prov_w <- shape_innova_prov %>%  
+  left_join(dw_prov_w, by = c("reg" = "reg", "prov" = "prov") )
+colSums(is.na(dw_prov_w))
+```
+
+
+## 4. Análisis espacial global 
+
+### 4.1. A nivel de muertes registradas según provincia por semana (10 test de moran)
+
+#### 4.1.1. Hombres
+Debido a la estructura panel de la base de datos, filtraremos según la variable `year`:
+```{r}
+dm_prov_w_2017 <- dm_prov_w %>% filter(year == 2017)
+dm_prov_w_2018 <- dm_prov_w %>% filter(year == 2018)
+dm_prov_w_2019 <- dm_prov_w %>% filter(year == 2019)
+dm_prov_w_2020 <- dm_prov_w %>% filter(year == 2020)
+dm_prov_w_2021 <- dm_prov_w %>% filter(year == 2021)
+```
+
+Se define la matriz de vecindad:
+```{r}
+dm_prov_w_2017.nb <- poly2nb(dm_prov_w_2017, queen=TRUE,snap = 0.13)
+dm_prov_w_2018.nb <- poly2nb(dm_prov_w_2018, queen=TRUE,snap = 0.13)
+dm_prov_w_2019.nb <- poly2nb(dm_prov_w_2019, queen=TRUE,snap = 0.13)
+dm_prov_w_2020.nb <- poly2nb(dm_prov_w_2020, queen=TRUE,snap = 0.13)
+dm_prov_w_2021.nb <- poly2nb(dm_prov_w_2021, queen=TRUE,snap = 0.13)
+```
+
+Se calcula la matriz de pesos:
+```{r}
+dm_prov_w_2017.lw <-  nb2listw(dm_prov_w_2017.nb, style="W", zero.policy=TRUE)
+dm_prov_w_2018.lw <-  nb2listw(dm_prov_w_2018.nb, style="W", zero.policy=TRUE)
+dm_prov_w_2019.lw <-  nb2listw(dm_prov_w_2019.nb, style="W", zero.policy=TRUE)
+dm_prov_w_2020.lw <-  nb2listw(dm_prov_w_2020.nb, style="W", zero.policy=TRUE)
+dm_prov_w_2021.lw <-  nb2listw(dm_prov_w_2021.nb, style="W", zero.policy=TRUE)
+```
+
+Se realiza la prueba de Moran global I:
+
+```{r}
+dm_w_moran_2017 <-  moran.test(dm_prov_w_2017$n, dm_prov_w_2017.lw)
+dm_w_moran_2017[["estimate"]][["Moran I statistic"]]
+
+dm_w_moran_2018 <-  moran.test(dm_prov_w_2018$n, dm_prov_w_2018.lw)
+dm_w_moran_2018[["estimate"]][["Moran I statistic"]]
+
+dm_w_moran_2019 <-  moran.test(dm_prov_w_2019$n, dm_prov_w_2019.lw)
+dm_w_moran_2019[["estimate"]][["Moran I statistic"]]
+
+dm_w_moran_2020 <-  moran.test(dm_prov_w_2020$n, dm_prov_w_2020.lw)
+dm_w_moran_2020[["estimate"]][["Moran I statistic"]]
+
+dm_w_moran_2021 <-  moran.test(dm_prov_w_2021$n, dm_prov_w_2021.lw)
+dm_w_moran_2021[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+rm(list = ls(pattern = "dm_prov_w_20."))
+```
+
+
+```{r}
+#ls(pattern = "dm_prov_w_20.")[sapply(mget(ls(pattern = "dm_prov_w_20."), .GlobalEnv), is.data.frame)]
+#ls(pattern = ".nb")
+#ls(pattern = ".lw")
+#ls(pattern = "dm_w_moran_.")
+
+#the function mget permite llamar objetivos mediante string a diferencia de print
+
+#lapply , function and for
+
+#rstats>broom>xtable
+
+```
+
+
+#### 4.1.2. Mujeres
+Debido a la estructura panel de la base de datos, filtraremos por un año en específico
+```{r}
+dw_prov_w_2017 <- dw_prov_w %>% filter(year == 2017)
+dw_prov_w_2018 <- dw_prov_w %>% filter(year == 2018)
+dw_prov_w_2019 <- dw_prov_w %>% filter(year == 2019)
+dw_prov_w_2020 <- dw_prov_w %>% filter(year == 2020)
+dw_prov_w_2021 <- dw_prov_w %>% filter(year == 2021)
+```
+
+Se define la matriz de vecindad:
+```{r}
+dw_prov_w_2017.nb <- poly2nb(dw_prov_w_2017, queen=TRUE,snap = 0.13)
+dw_prov_w_2018.nb <- poly2nb(dw_prov_w_2018, queen=TRUE,snap = 0.13)
+dw_prov_w_2019.nb <- poly2nb(dw_prov_w_2019, queen=TRUE,snap = 0.13)
+dw_prov_w_2020.nb <- poly2nb(dw_prov_w_2020, queen=TRUE,snap = 0.13)
+dw_prov_w_2021.nb <- poly2nb(dw_prov_w_2021, queen=TRUE,snap = 0.13)
+```
+
+Se calcula la matriz de pesos:
+```{r}
+dw_prov_w_2017.lw <-  nb2listw(dw_prov_w_2017.nb, style="W", zero.policy=TRUE)
+dw_prov_w_2018.lw <-  nb2listw(dw_prov_w_2018.nb, style="W", zero.policy=TRUE)
+dw_prov_w_2019.lw <-  nb2listw(dw_prov_w_2019.nb, style="W", zero.policy=TRUE)
+dw_prov_w_2020.lw <-  nb2listw(dw_prov_w_2020.nb, style="W", zero.policy=TRUE)
+dw_prov_w_2021.lw <-  nb2listw(dw_prov_w_2021.nb, style="W", zero.policy=TRUE)
+```
+
+Se realiza la prueba de Moran global I:
+```{r}
+dw_w_moran_2017 <-  moran.test(dw_prov_w_2017$n, dw_prov_w_2017.lw)
+dw_w_moran_2017[["estimate"]][["Moran I statistic"]]
+
+dw_w_moran_2018 <-  moran.test(dw_prov_w_2018$n, dw_prov_w_2018.lw)
+dw_w_moran_2018[["estimate"]][["Moran I statistic"]]
+
+dw_w_moran_2019 <-  moran.test(dw_prov_w_2019$n, dw_prov_w_2019.lw)
+dw_w_moran_2019[["estimate"]][["Moran I statistic"]]
+
+dw_w_moran_2020 <-  moran.test(dw_prov_w_2020$n, dw_prov_w_2020.lw)
+dw_w_moran_2020[["estimate"]][["Moran I statistic"]]
+
+dw_w_moran_2021 <-  moran.test(dw_prov_w_2021$n, dw_prov_w_2021.lw)
+dw_w_moran_2021[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+rm(list = ls(pattern = "dw_prov_w_20."))
+```
+
+
+#### 4.1.3. Sistematización de test de moran 
+
+Se reemplaza los p.values de los test de moran por valores más precisos 
+```{r}
+options(scipen = 999)
+
+lapply(ls(pattern = "._moran_20."), function(x) capture.output(get(x), file = paste("pvalue_", (x),".txt", sep="") ) )
+pv_10 <- lapply(ls(pattern = "._moran_20."), function(x) read.delim(paste("pvalue_", (x),".txt", sep=""))[3,1])
+
+replace_pv <- function(x, y){
+  assign(x, `[[<-`(get(x), 'p.value', str_split(pv_10, "<")[[y]][[2]] ), envir = .GlobalEnv)
+}
+
+mapply(replace_pv, ls(pattern = "._moran_20."), seq_along(ls(pattern = "._moran_20.")))
+```
+
+Creando un dataframe con los test obstenidos:
+```{r}
+t_moran_week2    <- data.frame( year = c(2017,2018,2019,2020,2021, 
+                                        2017,2018,2019,2020,2021),
+                               sex  = c("MASCULINO","MASCULINO", "MASCULINO", "MASCULINO", "MASCULINO",
+                                        "FEMENINO", "FEMENINO", "FEMENINO" , "FEMENINO", "FEMENINO"), 
+                               test_moran_global1 = c( dm_w_moran_2017[["estimate"]][["Moran I statistic"]], 
+                                                       dm_w_moran_2018[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_moran_2019[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_moran_2020[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_moran_2021[["estimate"]][["Moran I statistic"]],
+                                                       
+                                                       dw_w_moran_2017[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_moran_2018[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_moran_2019[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_moran_2020[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_moran_2021[["estimate"]][["Moran I statistic"]] ),
+                               p_value            = c( dm_w_moran_2017[["p.value"]], 
+                                                       dm_w_moran_2018[["p.value"]],
+                                                       dm_w_moran_2019[["p.value"]],
+                                                       dm_w_moran_2020[["p.value"]],
+                                                       dm_w_moran_2021[["p.value"]],
+                                                       
+                                                       dw_w_moran_2017[["p.value"]],
+                                                       dw_w_moran_2018[["p.value"]],
+                                                       dw_w_moran_2019[["p.value"]],
+                                                       dw_w_moran_2020[["p.value"]],
+                                                       dw_w_moran_2021[["p.value"]]) )
+
+t_moran_week2 <- t_moran_week2 %>% mutate(p_value = as.numeric(p_value))
+
+saveRDS(t_moran_week2, file.path(output,"t_moran_week", "t_moran_week2.rds"))
+```
+
+Convirtiendo los htest en objetos tidy
+```{r}
+for (i in ls(pattern = "._moran_20.")){
+  assign(i, broom::tidy(get(i)) %>% rename(Moran_I_statistic = estimate1,  Expectation = estimate2, Variance = estimate3, Moran_I_statistic_SD = statistic))
+}
+```
+
+Guardando los htest (tidy)
+```{r}
+lapply(ls(pattern = "._moran_20."), function(x) saveRDS(get(x), paste(output, "/t_moran_week/", x, ".rds", sep = "") ) )
+```
+
+Borrando los test de moran:
+```{r}
+rm(list = ls(pattern = "._moran"))
+```
+
+
+
+### 4.2. A nivel de muertes registradas según provincia por semana y grupo de edad (40 test de moran)
+
+#### 4.2.1. Hombres
+Debido a la estructura panel de la base de datos, filtraremos según la variable `year`y `group_age`:
+```{r}
+dm_prov_w_ga_2017_1 <- dm_prov_w_ga %>% filter(year == 2017 & group_age == "40_less") 
+dm_prov_w_ga_2017_2 <- dm_prov_w_ga %>% filter(year == 2017 & group_age == "41_60") 
+dm_prov_w_ga_2017_3 <- dm_prov_w_ga %>% filter(year == 2017 & group_age == "61_80") 
+dm_prov_w_ga_2017_4 <- dm_prov_w_ga %>% filter(year == 2017 & group_age == "81_more") 
+
+dm_prov_w_ga_2018_1 <- dm_prov_w_ga %>% filter(year == 2018 & group_age == "40_less") 
+dm_prov_w_ga_2018_2 <- dm_prov_w_ga %>% filter(year == 2018 & group_age == "41_60") 
+dm_prov_w_ga_2018_3 <- dm_prov_w_ga %>% filter(year == 2018 & group_age == "61_80") 
+dm_prov_w_ga_2018_4 <- dm_prov_w_ga %>% filter(year == 2018 & group_age == "81_more") 
+
+dm_prov_w_ga_2019_1 <- dm_prov_w_ga %>% filter(year == 2019 & group_age == "40_less") 
+dm_prov_w_ga_2019_2 <- dm_prov_w_ga %>% filter(year == 2019 & group_age == "41_60") 
+dm_prov_w_ga_2019_3 <- dm_prov_w_ga %>% filter(year == 2019 & group_age == "61_80") 
+dm_prov_w_ga_2019_4 <- dm_prov_w_ga %>% filter(year == 2019 & group_age == "81_more") 
+
+dm_prov_w_ga_2020_1 <- dm_prov_w_ga %>% filter(year == 2020 & group_age == "40_less") 
+dm_prov_w_ga_2020_2 <- dm_prov_w_ga %>% filter(year == 2020 & group_age == "41_60") 
+dm_prov_w_ga_2020_3 <- dm_prov_w_ga %>% filter(year == 2020 & group_age == "61_80") 
+dm_prov_w_ga_2020_4 <- dm_prov_w_ga %>% filter(year == 2020 & group_age == "81_more") 
+
+dm_prov_w_ga_2021_1 <- dm_prov_w_ga %>% filter(year == 2021 & group_age == "40_less") 
+dm_prov_w_ga_2021_2 <- dm_prov_w_ga %>% filter(year == 2021 & group_age == "41_60") 
+dm_prov_w_ga_2021_3 <- dm_prov_w_ga %>% filter(year == 2021 & group_age == "61_80") 
+dm_prov_w_ga_2021_4 <- dm_prov_w_ga %>% filter(year == 2021 & group_age == "81_more") 
+```
+
+
+
+Se define la matriz de vecindad:
+```{r}
+dm_prov_w_ga_2017_1.nb <- poly2nb(dm_prov_w_ga_2017_1, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2017_2.nb <- poly2nb(dm_prov_w_ga_2017_2, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2017_3.nb <- poly2nb(dm_prov_w_ga_2017_3, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2017_4.nb <- poly2nb(dm_prov_w_ga_2017_4, queen = TRUE, snap = 0.13)
+
+dm_prov_w_ga_2018_1.nb <- poly2nb(dm_prov_w_ga_2018_1, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2018_2.nb <- poly2nb(dm_prov_w_ga_2018_2, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2018_3.nb <- poly2nb(dm_prov_w_ga_2018_3, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2018_4.nb <- poly2nb(dm_prov_w_ga_2018_4, queen = TRUE, snap = 0.13)
+
+dm_prov_w_ga_2019_1.nb <- poly2nb(dm_prov_w_ga_2019_1, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2019_2.nb <- poly2nb(dm_prov_w_ga_2019_2, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2019_3.nb <- poly2nb(dm_prov_w_ga_2019_3, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2019_4.nb <- poly2nb(dm_prov_w_ga_2019_4, queen = TRUE, snap = 0.13)
+
+dm_prov_w_ga_2020_1.nb <- poly2nb(dm_prov_w_ga_2020_1, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2020_2.nb <- poly2nb(dm_prov_w_ga_2020_2, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2020_3.nb <- poly2nb(dm_prov_w_ga_2020_3, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2020_4.nb <- poly2nb(dm_prov_w_ga_2020_4, queen = TRUE, snap = 0.13)
+
+dm_prov_w_ga_2021_1.nb <- poly2nb(dm_prov_w_ga_2021_1, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2021_2.nb <- poly2nb(dm_prov_w_ga_2021_2, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2021_3.nb <- poly2nb(dm_prov_w_ga_2021_3, queen = TRUE, snap = 0.13)
+dm_prov_w_ga_2021_4.nb <- poly2nb(dm_prov_w_ga_2021_4, queen = TRUE, snap = 0.13)
+```
+
+Se calcula la matriz de pesos:
+```{r}
+dm_prov_w_ga_2017_1.lw <-  nb2listw(dm_prov_w_ga_2017_1.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2017_2.lw <-  nb2listw(dm_prov_w_ga_2017_2.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2017_3.lw <-  nb2listw(dm_prov_w_ga_2017_3.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2017_4.lw <-  nb2listw(dm_prov_w_ga_2017_4.nb, style="W", zero.policy=TRUE)
+
+dm_prov_w_ga_2018_1.lw <-  nb2listw(dm_prov_w_ga_2018_1.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2018_2.lw <-  nb2listw(dm_prov_w_ga_2018_2.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2018_3.lw <-  nb2listw(dm_prov_w_ga_2018_3.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2018_4.lw <-  nb2listw(dm_prov_w_ga_2018_4.nb, style="W", zero.policy=TRUE)
+
+dm_prov_w_ga_2019_1.lw <-  nb2listw(dm_prov_w_ga_2019_1.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2019_2.lw <-  nb2listw(dm_prov_w_ga_2019_2.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2019_3.lw <-  nb2listw(dm_prov_w_ga_2019_3.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2019_4.lw <-  nb2listw(dm_prov_w_ga_2019_4.nb, style="W", zero.policy=TRUE)
+
+dm_prov_w_ga_2020_1.lw <-  nb2listw(dm_prov_w_ga_2020_1.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2020_2.lw <-  nb2listw(dm_prov_w_ga_2020_2.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2020_3.lw <-  nb2listw(dm_prov_w_ga_2020_3.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2020_4.lw <-  nb2listw(dm_prov_w_ga_2020_4.nb, style="W", zero.policy=TRUE)
+
+dm_prov_w_ga_2021_1.lw <-  nb2listw(dm_prov_w_ga_2021_1.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2021_2.lw <-  nb2listw(dm_prov_w_ga_2021_2.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2021_3.lw <-  nb2listw(dm_prov_w_ga_2021_3.nb, style="W", zero.policy=TRUE)
+dm_prov_w_ga_2021_4.lw <-  nb2listw(dm_prov_w_ga_2021_4.nb, style="W", zero.policy=TRUE)
+```
+
+
+Se realiza la prueba de Moran global I:
+```{r}
+#2017
+dm_w_ga_moran_2017_1 <- moran.test(dm_prov_w_ga_2017_1$n, dm_prov_w_ga_2017_1.lw)
+dm_w_ga_moran_2017_1[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2017_2 <- moran.test(dm_prov_w_ga_2017_2$n, dm_prov_w_ga_2017_2.lw)
+dm_w_ga_moran_2017_2[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2017_3 <- moran.test(dm_prov_w_ga_2017_3$n, dm_prov_w_ga_2017_3.lw)
+dm_w_ga_moran_2017_3[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2017_4 <- moran.test(dm_prov_w_ga_2017_4$n, dm_prov_w_ga_2017_4.lw)
+dm_w_ga_moran_2017_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2018
+dm_w_ga_moran_2018_1 <- moran.test(dm_prov_w_ga_2018_1$n, dm_prov_w_ga_2018_1.lw)
+dm_w_ga_moran_2018_1[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2018_2 <- moran.test(dm_prov_w_ga_2018_2$n, dm_prov_w_ga_2018_2.lw)
+dm_w_ga_moran_2018_2[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2018_3 <- moran.test(dm_prov_w_ga_2018_3$n, dm_prov_w_ga_2018_3.lw)
+dm_w_ga_moran_2018_3[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2018_4 <- moran.test(dm_prov_w_ga_2018_4$n, dm_prov_w_ga_2018_4.lw)
+dm_w_ga_moran_2018_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2019
+dm_w_ga_moran_2019_1 <- moran.test(dm_prov_w_ga_2019_1$n, dm_prov_w_ga_2019_1.lw)
+dm_w_ga_moran_2019_1[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2019_2 <- moran.test(dm_prov_w_ga_2019_2$n, dm_prov_w_ga_2019_2.lw)
+dm_w_ga_moran_2019_2[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2019_3 <- moran.test(dm_prov_w_ga_2019_3$n, dm_prov_w_ga_2019_3.lw)
+dm_w_ga_moran_2019_3[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2019_4 <- moran.test(dm_prov_w_ga_2019_4$n, dm_prov_w_ga_2019_4.lw)
+dm_w_ga_moran_2019_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2020
+dm_w_ga_moran_2020_1 <- moran.test(dm_prov_w_ga_2020_1$n, dm_prov_w_ga_2020_1.lw)
+dm_w_ga_moran_2020_1[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2020_2 <- moran.test(dm_prov_w_ga_2020_2$n, dm_prov_w_ga_2020_2.lw)
+dm_w_ga_moran_2020_2[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2020_3 <- moran.test(dm_prov_w_ga_2020_3$n, dm_prov_w_ga_2020_3.lw)
+dm_w_ga_moran_2020_3[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2020_4 <- moran.test(dm_prov_w_ga_2020_4$n, dm_prov_w_ga_2020_4.lw)
+dm_w_ga_moran_2020_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2021
+dm_w_ga_moran_2021_1 <- moran.test(dm_prov_w_ga_2021_1$n, dm_prov_w_ga_2021_1.lw)
+dm_w_ga_moran_2021_1[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2021_2 <- moran.test(dm_prov_w_ga_2021_2$n, dm_prov_w_ga_2021_2.lw)
+dm_w_ga_moran_2021_2[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2021_3 <- moran.test(dm_prov_w_ga_2021_3$n, dm_prov_w_ga_2021_3.lw)
+dm_w_ga_moran_2021_3[["estimate"]][["Moran I statistic"]]
+
+dm_w_ga_moran_2021_4 <- moran.test(dm_prov_w_ga_2021_4$n, dm_prov_w_ga_2021_4.lw)
+dm_w_ga_moran_2021_4[["estimate"]][["Moran I statistic"]]
+```
+
+Borrando los datasets creados durante la obtención del test de moran:
+```{r}
+rm(list = ls(pattern = "dm_prov_w_ga_20."))
+```
+
+
+#### 4.2.2. Mujeres
+
+Debido a la estructura panel de la base de datos, filtraremos según la variable `year`y `group_age`:
+```{r}
+dw_prov_w_ga_2017_1 <- dw_prov_w_ga %>% filter(year == 2017 & group_age == "40_less") 
+dw_prov_w_ga_2017_2 <- dw_prov_w_ga %>% filter(year == 2017 & group_age == "41_60") 
+dw_prov_w_ga_2017_3 <- dw_prov_w_ga %>% filter(year == 2017 & group_age == "61_80") 
+dw_prov_w_ga_2017_4 <- dw_prov_w_ga %>% filter(year == 2017 & group_age == "81_more") 
+
+dw_prov_w_ga_2018_1 <- dw_prov_w_ga %>% filter(year == 2018 & group_age == "40_less") 
+dw_prov_w_ga_2018_2 <- dw_prov_w_ga %>% filter(year == 2018 & group_age == "41_60") 
+dw_prov_w_ga_2018_3 <- dw_prov_w_ga %>% filter(year == 2018 & group_age == "61_80") 
+dw_prov_w_ga_2018_4 <- dw_prov_w_ga %>% filter(year == 2018 & group_age == "81_more") 
+
+dw_prov_w_ga_2019_1 <- dw_prov_w_ga %>% filter(year == 2019 & group_age == "40_less") 
+dw_prov_w_ga_2019_2 <- dw_prov_w_ga %>% filter(year == 2019 & group_age == "41_60") 
+dw_prov_w_ga_2019_3 <- dw_prov_w_ga %>% filter(year == 2019 & group_age == "61_80") 
+dw_prov_w_ga_2019_4 <- dw_prov_w_ga %>% filter(year == 2019 & group_age == "81_more") 
+
+dw_prov_w_ga_2020_1 <- dw_prov_w_ga %>% filter(year == 2020 & group_age == "40_less") 
+dw_prov_w_ga_2020_2 <- dw_prov_w_ga %>% filter(year == 2020 & group_age == "41_60") 
+dw_prov_w_ga_2020_3 <- dw_prov_w_ga %>% filter(year == 2020 & group_age == "61_80") 
+dw_prov_w_ga_2020_4 <- dw_prov_w_ga %>% filter(year == 2020 & group_age == "81_more") 
+
+dw_prov_w_ga_2021_1 <- dw_prov_w_ga %>% filter(year == 2021 & group_age == "40_less") 
+dw_prov_w_ga_2021_2 <- dw_prov_w_ga %>% filter(year == 2021 & group_age == "41_60") 
+dw_prov_w_ga_2021_3 <- dw_prov_w_ga %>% filter(year == 2021 & group_age == "61_80") 
+dw_prov_w_ga_2021_4 <- dw_prov_w_ga %>% filter(year == 2021 & group_age == "81_more") 
+```
+
+
+Se define la matriz de vecindad:
+```{r}
+dw_prov_w_ga_2017_1.nb <- poly2nb(dw_prov_w_ga_2017_1, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2017_2.nb <- poly2nb(dw_prov_w_ga_2017_2, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2017_3.nb <- poly2nb(dw_prov_w_ga_2017_3, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2017_4.nb <- poly2nb(dw_prov_w_ga_2017_4, queen = TRUE, snap = 0.13)
+
+dw_prov_w_ga_2018_1.nb <- poly2nb(dw_prov_w_ga_2018_1, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2018_2.nb <- poly2nb(dw_prov_w_ga_2018_2, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2018_3.nb <- poly2nb(dw_prov_w_ga_2018_3, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2018_4.nb <- poly2nb(dw_prov_w_ga_2018_4, queen = TRUE, snap = 0.13)
+
+dw_prov_w_ga_2019_1.nb <- poly2nb(dw_prov_w_ga_2019_1, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2019_2.nb <- poly2nb(dw_prov_w_ga_2019_2, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2019_3.nb <- poly2nb(dw_prov_w_ga_2019_3, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2019_4.nb <- poly2nb(dw_prov_w_ga_2019_4, queen = TRUE, snap = 0.13)
+
+dw_prov_w_ga_2020_1.nb <- poly2nb(dw_prov_w_ga_2020_1, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2020_2.nb <- poly2nb(dw_prov_w_ga_2020_2, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2020_3.nb <- poly2nb(dw_prov_w_ga_2020_3, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2020_4.nb <- poly2nb(dw_prov_w_ga_2020_4, queen = TRUE, snap = 0.13)
+
+dw_prov_w_ga_2021_1.nb <- poly2nb(dw_prov_w_ga_2021_1, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2021_2.nb <- poly2nb(dw_prov_w_ga_2021_2, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2021_3.nb <- poly2nb(dw_prov_w_ga_2021_3, queen = TRUE, snap = 0.13)
+dw_prov_w_ga_2021_4.nb <- poly2nb(dw_prov_w_ga_2021_4, queen = TRUE, snap = 0.13)
+```
+
+
+Se calcula la matriz de pesos:
+```{r}
+dw_prov_w_ga_2017_1.lw <-  nb2listw(dw_prov_w_ga_2017_1.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2017_2.lw <-  nb2listw(dw_prov_w_ga_2017_2.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2017_3.lw <-  nb2listw(dw_prov_w_ga_2017_3.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2017_4.lw <-  nb2listw(dw_prov_w_ga_2017_4.nb, style="W", zero.policy=TRUE)
+
+dw_prov_w_ga_2018_1.lw <-  nb2listw(dw_prov_w_ga_2018_1.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2018_2.lw <-  nb2listw(dw_prov_w_ga_2018_2.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2018_3.lw <-  nb2listw(dw_prov_w_ga_2018_3.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2018_4.lw <-  nb2listw(dw_prov_w_ga_2018_4.nb, style="W", zero.policy=TRUE)
+
+dw_prov_w_ga_2019_1.lw <-  nb2listw(dw_prov_w_ga_2019_1.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2019_2.lw <-  nb2listw(dw_prov_w_ga_2019_2.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2019_3.lw <-  nb2listw(dw_prov_w_ga_2019_3.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2019_4.lw <-  nb2listw(dw_prov_w_ga_2019_4.nb, style="W", zero.policy=TRUE)
+
+dw_prov_w_ga_2020_1.lw <-  nb2listw(dw_prov_w_ga_2020_1.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2020_2.lw <-  nb2listw(dw_prov_w_ga_2020_2.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2020_3.lw <-  nb2listw(dw_prov_w_ga_2020_3.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2020_4.lw <-  nb2listw(dw_prov_w_ga_2020_4.nb, style="W", zero.policy=TRUE)
+
+dw_prov_w_ga_2021_1.lw <-  nb2listw(dw_prov_w_ga_2021_1.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2021_2.lw <-  nb2listw(dw_prov_w_ga_2021_2.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2021_3.lw <-  nb2listw(dw_prov_w_ga_2021_3.nb, style="W", zero.policy=TRUE)
+dw_prov_w_ga_2021_4.lw <-  nb2listw(dw_prov_w_ga_2021_4.nb, style="W", zero.policy=TRUE)
+```
+
+
+Se realiza la prueba de Moran global I:
+```{r}
+#2017
+dw_w_ga_moran_2017_1 <- moran.test(dw_prov_w_ga_2017_1$n, dw_prov_w_ga_2017_1.lw)
+dw_w_ga_moran_2017_1[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2017_2 <- moran.test(dw_prov_w_ga_2017_2$n, dw_prov_w_ga_2017_2.lw)
+dw_w_ga_moran_2017_2[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2017_3 <- moran.test(dw_prov_w_ga_2017_3$n, dw_prov_w_ga_2017_3.lw)
+dw_w_ga_moran_2017_3[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2017_4 <- moran.test(dw_prov_w_ga_2017_4$n, dw_prov_w_ga_2017_4.lw)
+dw_w_ga_moran_2017_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2018
+dw_w_ga_moran_2018_1 <- moran.test(dw_prov_w_ga_2018_1$n, dw_prov_w_ga_2018_1.lw)
+dw_w_ga_moran_2018_1[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2018_2 <- moran.test(dw_prov_w_ga_2018_2$n, dw_prov_w_ga_2018_2.lw)
+dw_w_ga_moran_2018_2[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2018_3 <- moran.test(dw_prov_w_ga_2018_3$n, dw_prov_w_ga_2018_3.lw)
+dw_w_ga_moran_2018_3[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2018_4 <- moran.test(dw_prov_w_ga_2018_4$n, dw_prov_w_ga_2018_4.lw)
+dw_w_ga_moran_2018_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2019
+dw_w_ga_moran_2019_1 <- moran.test(dw_prov_w_ga_2019_1$n, dw_prov_w_ga_2019_1.lw)
+dw_w_ga_moran_2019_1[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2019_2 <- moran.test(dw_prov_w_ga_2019_2$n, dw_prov_w_ga_2019_2.lw)
+dw_w_ga_moran_2019_2[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2019_3 <- moran.test(dw_prov_w_ga_2019_3$n, dw_prov_w_ga_2019_3.lw)
+dw_w_ga_moran_2019_3[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2019_4 <- moran.test(dw_prov_w_ga_2019_4$n, dw_prov_w_ga_2019_4.lw)
+dw_w_ga_moran_2019_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2020
+dw_w_ga_moran_2020_1 <- moran.test(dw_prov_w_ga_2020_1$n, dw_prov_w_ga_2020_1.lw)
+dw_w_ga_moran_2020_1[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2020_2 <- moran.test(dw_prov_w_ga_2020_2$n, dw_prov_w_ga_2020_2.lw)
+dw_w_ga_moran_2020_2[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2020_3 <- moran.test(dw_prov_w_ga_2020_3$n, dw_prov_w_ga_2020_3.lw)
+dw_w_ga_moran_2020_3[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2020_4 <- moran.test(dw_prov_w_ga_2020_4$n, dw_prov_w_ga_2020_4.lw)
+dw_w_ga_moran_2020_4[["estimate"]][["Moran I statistic"]]
+```
+
+```{r}
+#2021
+dw_w_ga_moran_2021_1 <- moran.test(dw_prov_w_ga_2021_1$n, dw_prov_w_ga_2021_1.lw)
+dw_w_ga_moran_2021_1[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2021_2 <- moran.test(dw_prov_w_ga_2021_2$n, dw_prov_w_ga_2021_2.lw)
+dw_w_ga_moran_2021_2[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2021_3 <- moran.test(dw_prov_w_ga_2021_3$n, dw_prov_w_ga_2021_3.lw)
+dw_w_ga_moran_2021_3[["estimate"]][["Moran I statistic"]]
+
+dw_w_ga_moran_2021_4 <- moran.test(dw_prov_w_ga_2021_4$n, dw_prov_w_ga_2021_4.lw)
+dw_w_ga_moran_2021_4[["estimate"]][["Moran I statistic"]]
+```
+
+Borrando los datasets creados durante la obtención del test de moran:
+```{r}
+rm(list = ls(pattern = "dw_prov_w_ga_20."))
+```
+
+
+#### 4.2.3. Sistematización de test de moran 
+
+Se reemplaza los p.values de los test de moran por valores más precisos 
+```{r}
+options(scipen = 999)
+
+lapply(ls(pattern = "._moran_20."), function(x) capture.output(get(x), file = paste("pvalue_", (x),".txt", sep="") ) )
+pv_40 <- lapply(ls(pattern = "._moran_20."), function(x) read.delim(paste("pvalue_", (x),".txt", sep=""))[3,1])
+
+replace_pv <- function(x, y){
+  assign(x, `[[<-`(get(x), 'p.value', str_split(pv_40, "<")[[y]][[2]] ), envir = .GlobalEnv)
+}
+
+mapply(replace_pv, ls(pattern = "._moran_20."), seq_along(ls(pattern = "._moran_20.")))
+```
+
+
+Creando un dataframe con los test obstenidos:
+```{r}
+t_moran_week_ga2 <- data.frame( year = rep(c(2017,2018,2019,2020,2021,2017,2018,2019,2020,2021), each =  4),
+                               group_age = rep(c("40_less","41_60","61_80","81_more"), times = 10),
+                               sex  = rep(c("MASCULINO", "FEMENINO")             , each = 20), 
+                               test_moran_global1 = c( dm_w_ga_moran_2017_1[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2017_2[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2017_3[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2017_4[["estimate"]][["Moran I statistic"]],
+                                                      
+                                                       dm_w_ga_moran_2018_1[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2018_2[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2018_3[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2018_4[["estimate"]][["Moran I statistic"]],
+                                                       
+                                                       dm_w_ga_moran_2019_1[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2019_2[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2019_3[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2019_4[["estimate"]][["Moran I statistic"]],
+                                                       
+                                                       dm_w_ga_moran_2020_1[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2020_2[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2020_3[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2020_4[["estimate"]][["Moran I statistic"]],
+                                                       
+                                                       dm_w_ga_moran_2021_1[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2021_2[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2021_3[["estimate"]][["Moran I statistic"]],
+                                                       dm_w_ga_moran_2021_4[["estimate"]][["Moran I statistic"]],
+                                                       
+                                                       
+                                                       dw_w_ga_moran_2017_1[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2017_2[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2017_3[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2017_4[["estimate"]][["Moran I statistic"]],
+                                                                                                             
+                                                       dw_w_ga_moran_2018_1[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2018_2[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2018_3[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2018_4[["estimate"]][["Moran I statistic"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2019_1[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2019_2[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2019_3[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2019_4[["estimate"]][["Moran I statistic"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2020_1[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2020_2[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2020_3[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2020_4[["estimate"]][["Moran I statistic"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2021_1[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2021_2[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2021_3[["estimate"]][["Moran I statistic"]],
+                                                       dw_w_ga_moran_2021_4[["estimate"]][["Moran I statistic"]] ),
+                               
+                               p_value            = c( dm_w_ga_moran_2017_1[["p.value"]], 
+                                                       dm_w_ga_moran_2017_2[["p.value"]],
+                                                       dm_w_ga_moran_2017_3[["p.value"]],
+                                                       dm_w_ga_moran_2017_4[["p.value"]],
+                                                       
+                                                       dm_w_ga_moran_2018_1[["p.value"]],
+                                                       dm_w_ga_moran_2018_2[["p.value"]],
+                                                       dm_w_ga_moran_2018_3[["p.value"]],
+                                                       dm_w_ga_moran_2018_4[["p.value"]],
+                                                       
+                                                       dm_w_ga_moran_2019_1[["p.value"]],
+                                                       dm_w_ga_moran_2019_2[["p.value"]],
+                                                       dm_w_ga_moran_2019_3[["p.value"]],
+                                                       dm_w_ga_moran_2019_4[["p.value"]],
+                                                       
+                                                       dm_w_ga_moran_2020_1[["p.value"]],
+                                                       dm_w_ga_moran_2020_2[["p.value"]],
+                                                       dm_w_ga_moran_2020_3[["p.value"]],
+                                                       dm_w_ga_moran_2020_4[["p.value"]],
+                                                       
+                                                       dm_w_ga_moran_2021_1[["p.value"]],
+                                                       dm_w_ga_moran_2021_2[["p.value"]],
+                                                       dm_w_ga_moran_2021_3[["p.value"]],
+                                                       dm_w_ga_moran_2021_4[["p.value"]], 
+                                                       
+                                                       
+                                                       dw_w_ga_moran_2017_1[["p.value"]],
+                                                       dw_w_ga_moran_2017_2[["p.value"]],
+                                                       dw_w_ga_moran_2017_3[["p.value"]],
+                                                       dw_w_ga_moran_2017_4[["p.value"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2018_1[["p.value"]],
+                                                       dw_w_ga_moran_2018_2[["p.value"]],
+                                                       dw_w_ga_moran_2018_3[["p.value"]],
+                                                       dw_w_ga_moran_2018_4[["p.value"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2019_1[["p.value"]],
+                                                       dw_w_ga_moran_2019_2[["p.value"]],
+                                                       dw_w_ga_moran_2019_3[["p.value"]],
+                                                       dw_w_ga_moran_2019_4[["p.value"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2020_1[["p.value"]],
+                                                       dw_w_ga_moran_2020_2[["p.value"]],
+                                                       dw_w_ga_moran_2020_3[["p.value"]],
+                                                       dw_w_ga_moran_2020_4[["p.value"]],
+                                                                                                              
+                                                       dw_w_ga_moran_2021_1[["p.value"]],
+                                                       dw_w_ga_moran_2021_2[["p.value"]],
+                                                       dw_w_ga_moran_2021_3[["p.value"]],
+                                                       dw_w_ga_moran_2021_4[["p.value"]]) )
+
+
+t_moran_week_ga2 <- t_moran_week_ga2 %>% mutate(p_value = as.numeric(p_value))
+
+saveRDS(t_moran_week_ga2, file.path(output,"t_moran_week_ga", "t_moran_week_ga2.rds"))
+```
+
+Convirtiendo los htest en objetos tidy
+```{r}
+for (i in ls(pattern = "._moran_20.")){
+  assign(i, broom::tidy(get(i)) %>% rename(Moran_I_statistic = estimate1,  Expectation = estimate2, Variance = estimate3, Moran_I_statistic_SD = statistic))
+}
+```
+
+Guardando los htest (tidy)
+```{r}
+lapply(ls(pattern = "._moran_20."), function(x) saveRDS(get(x), paste(output, "/t_moran_week_ga/", x, ".rds", sep = "") ) )
+```
+
+Borrando los test de moran:
+```{r}
+rm(list = ls(pattern = ".moran_20."))
+```
+
+
