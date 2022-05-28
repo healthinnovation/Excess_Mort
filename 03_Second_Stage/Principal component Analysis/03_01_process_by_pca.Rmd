@@ -9,6 +9,8 @@ output: html_document
 
 source("excess_functions.R")
 library(tidyverse)
+####
+# Provincial
 social.dets  <- readRDS("vulnr_df_prov.rds")         %>% 
                       rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
                        pr_edu_inf_25       = INEI_prop_niv.insInf_25yrs,
@@ -45,7 +47,7 @@ social.dets  <- readRDS("vulnr_df_prov.rds")         %>%
 
 
 ####################################################
-
+# departamental 
 social.dets.dep <- readRDS("social_dets_dep.rds")                                   %>% 
                    select(dep,Endes_Prop_Diab,Endes_Prop_Fuma_Diario,
                         Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
@@ -80,12 +82,14 @@ social.dets.dep <- readRDS("social_dets_dep.rds")                               
 
 ```{r,message=F,warning=F}
 
+# variables , componentes , dimensiones 
+
 dynamic.population.pca        <- prcomp(social.dets     %>% 
                                  select(pr_edu_oth_distr,pr_wrk_oth_distr,
-                                 pr_liv_oth_distr,pr_no_vehiculo), center = TRUE,scale. = TRUE)
+                                 pr_liv_oth_distr), center = TRUE,scale. = TRUE) #pr_no_vehiculo
 
 economic.pca                  <- prcomp(social.dets     %>% 
-                                 select(pr_pov_2018,pr_insu,pr_NBI), center = TRUE,scale. = TRUE)
+                                 select(pr_insu,pr_NBI), center = TRUE,scale. = TRUE) # pr_pov_2018,
 
 health.status.pca             <- prcomp(social.dets.dep %>% 
                                  select(pr_diab,pr_smoke,pr_hyper_tension,
@@ -100,6 +104,8 @@ house.characteristics.pca      <- prcomp(social.dets     %>%
                                         INEI_prop_No_techo_concreto,
                                         INEI_prop_Nopiso_cemento_loseta,
                                         pr_urban_2017), center = TRUE,scale. = TRUE)
+
+
 ```
 
 
@@ -193,17 +199,20 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 
 
 
-# interpretation / selection variables
+#selection variables
 
 
 ```{r,message=F,warning=F}
+# obj: Max Proportion of Variance del primer componente 
+# supuesto: el 1er componente es la dimension que queremos modelar 
+# con al menos 3 variables maximizar 
 summary(dynamic.population.pca)
 summary(economic.pca)
-summary(health.pca)
 summary(health.performance.pca)
 summary(house.characteristics.pca)
 ```
 
+# interpretation / biplot
 
 ## 1) Population's dynamic
 
@@ -287,6 +296,43 @@ biplot(economic.pca, scale = 0)
 ```{r,message=F,warning=F,echo=F}
 
 
+# Componentes n =196 
+
+dynamic.population.dim    <-dynamic.population.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            rename(dynamic.population.dim= PC1)
+
+economic.dim              <-economic.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            rename(economic.dim = PC1)
+
+health.status.dim         <-health.status.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            rename(health.status.dim = PC1)
+
+health.performance.dim    <-health.performance.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            rename(health.performance.dim = PC1)
+
+house.characteristics.dim <-house.characteristics.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            rename(house.characteristics.dim = PC1)
+
+social.dets %>% 
+left_join(health.status.dim,c(" = "))
+# left JOIN
+dim(health.status.dim)      # 25 
+dim(dynamic.population.dim) # 196 
+
+
+# Puntos a tomar en cuenta  
+# nueva base de datos de dimensiones  con n=196 , sugerencia   economic_dim_1 , economic_dim_2 
+#  NOTA : dejar para la final la union entre los resultados pca  y la base de datos , caso contrario alteraras la estructura var-cov
 
 ```
 
