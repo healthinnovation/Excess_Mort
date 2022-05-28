@@ -1,0 +1,292 @@
+---
+title: "03_01_Process_by_pca"
+author: "Et al"
+date: "27/5/2022"
+output: html_document
+---
+
+```{r,message=F,warning=F,eval=F}
+
+source("excess_functions.R")
+library(tidyverse)
+social.dets  <- readRDS("vulnr_df_prov.rds")         %>% 
+                      rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
+                       pr_edu_inf_25       = INEI_prop_niv.insInf_25yrs,
+                       pr_pov_2018         = prop_pobreza_2018,                    # poverty
+                       pr_wout_water       = INEI_prop_NoAbsAguVvn_int_2017,       # prp de pob wihout  water
+                       pr_urban_2017       = INEI_prop_urbano_2017,                #  prp of urban pop 
+                       pr_one_hab          = Prop_1_hab,                           # prp de casas 1hab
+                       pr_with_elec        = INEI_Prop_NoAlumbradoElectri_2017,    # prp de pob wihout electricity
+                       pr_wrk_oth_distr    = INEI_prop_cntr_trb_otroDistrito_2017, # prp of pop working in other district 
+                       pr_liv_oth_distr    = INEI_prop_NoViviaDistr5_2017,         # mudados
+                       pr_edu_oth_distr    = INEI_prop_Inst.Edu_EnOtroDistrito_2017,
+                       pr_NBI              = NBI_Prop,                             # prp con al menos min 1 necesidad insatisfecha
+                       min_tercer          = `Tertiary HCF`,
+                       min_second          = `Secondary HCF`,
+                       min_prim            = `Primary HCF`,
+                       pr_no_bl_mz         = INEI_prop_autoident_NoMstBlc,
+                       pr_no_inter         = INEI_prop_NoInternet_2017,
+                       pr_no_tele          = INEI_prop_NoTelevisor_2017,
+                       pr_no_cel           = INEI_prop_NoCelular_2017,
+                       pr_si_buscajob      = INEI_prop_si_buscando_trabajo,
+                       pr_no_trabajo_pago  = INEI_prop_no_trabajo_pago,
+                       pr_no_casa_titu     = INEI_prop_Notenenciaviv_2017,
+                       pr_no_vehiculo      = INEI_prop_novehiculo_2017
+                       
+                # Education and demographic dimension        
+                ) %>% 
+                mutate( education_dimension   = scale.default(pr_edu_inf_25),
+                        demographic_dimension = scale.default(pr_no_bl_mz)
+                        )
+
+
+
+
+
+
+####################################################
+
+social.dets.dep <- readRDS("social_dets_dep.rds")                                   %>% 
+                   select(dep,Endes_Prop_Diab,Endes_Prop_Fuma_Diario,
+                        Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
+                        Enfermeras_10khab,Farmaceuticos_10khab,
+                        TecMedicos_10khab,
+                        Medicos_10khab,Presupuesto_salud,Presupuesto_publico)     %>% 
+                   rename(pr_diab               = Endes_Prop_Diab,
+                          pr_smoke              = Endes_Prop_Fuma_Diario,
+                          pr_hyper_tension      = Endes_Prop_HA,
+                          pr_obes               = ENDES_prop_Obes,
+                          pr_tos                = Endes_Prop_Tos,
+                          med_x_100             = Medicos_10khab)                   %>% 
+                   mutate(med_x_100             = med_x_100/10,  
+                          enf_x_100             = Enfermeras_10khab/10,
+                          far_x_100             = Farmaceuticos_10khab/10,
+                        tecmed_x_100          = TecMedicos_10khab/10,
+                        pr_salud_presupuesto  = Presupuesto_salud/Presupuesto_publico)
+
+####################################################
+
+
+
+
+
+
+
+
+```
+
+# Principal components analysis
+
+
+```{r,message=F,warning=F}
+
+dynamic.population.pca        <- prcomp(social.dets     %>% 
+                                 select(pr_edu_oth_distr,pr_wrk_oth_distr,
+                                 pr_liv_oth_distr,pr_no_vehiculo), center = TRUE,scale. = TRUE)
+
+economic.pca                  <- prcomp(social.dets     %>% 
+                                 select(pr_pov_2018,pr_insu,pr_NBI), center = TRUE,scale. = TRUE)
+
+health.status.pca             <- prcomp(social.dets.dep %>% 
+                                 select(pr_diab,pr_smoke,pr_hyper_tension,
+                                 pr_obes,pr_tos), center = TRUE,scale. = TRUE)
+
+health.performance.pca        <- prcomp(social.dets.dep %>% 
+                                 select(med_x_100,enf_x_100,far_x_100,
+                                 tecmed_x_100,pr_salud_presupuesto), center = TRUE,scale. = TRUE)
+
+house.characteristics.pca      <- prcomp(social.dets     %>% 
+                                  select(INEI_prop_Nopared_ladrillo_cemento,
+                                        INEI_prop_No_techo_concreto,
+                                        INEI_prop_Nopiso_cemento_loseta,
+                                        pr_urban_2017), center = TRUE,scale. = TRUE)
+```
+
+
+# Number of dimensions
+
+## 1) Population's dynamic
+
+```{r,eval=F,message=F,warning=F}
+library(gridExtra)
+
+(VE <- dynamic.population.pca$sdev^2)
+PVE <- VE / sum(VE)
+round(PVE, 2)
+
+
+PVEplot  <-  qplot(c(1:4), PVE) + 
+             geom_line() + 
+             xlab("Principal Component") + 
+             ylab("PVE") +
+             ggtitle("Scree Plot") +
+             ylim(0, 1)
+
+# Cumulative PVE plot
+cumPVE   <- qplot(c(1:4), cumsum(PVE))       + 
+            geom_line()                      + 
+            xlab("Principal Component")      + 
+            ylab(NULL)                       + 
+            ggtitle("Cumulative Scree Plot") +
+            ylim(0,1)
+
+grid.arrange(PVEplot, cumPVE, ncol = 2)
+
+```
+
+## 2) Economics
+
+```{r,eval=F,message=F,warning=F}
+library(gridExtra)
+
+(VE <- economic.pca$sdev^2)
+PVE <- VE / sum(VE)
+round(PVE, 2)
+
+
+PVEplot  <-  qplot(c(1:3), PVE) +   # Adjust accord to dimension's number
+             geom_line() + 
+             xlab("Principal Component") + 
+             ylab("PVE") +
+             ggtitle("Scree Plot") +
+             ylim(0, 1)
+
+# Cumulative PVE plot
+cumPVE   <- qplot(c(1:3), cumsum(PVE))       + 
+            geom_line()                      + 
+            xlab("Principal Component")      + 
+            ylab(NULL)                       + 
+            ggtitle("Cumulative Scree Plot") +
+            ylim(0,1)
+
+grid.arrange(PVEplot, cumPVE, ncol = 2)
+
+```
+
+## 3) Household characteristics
+
+```{r,eval=F,message=F,warning=F}
+library(gridExtra)
+
+(VE <- house.characteristics.pca$sdev^2)
+PVE <- VE / sum(VE)
+round(PVE, 2)
+
+
+PVEplot  <-  qplot(c(1:4), PVE) +   # Adjust accord to dimension's number
+             geom_line() + 
+             xlab("Principal Component") + 
+             ylab("PVE") +
+             ggtitle("Scree Plot") +
+             ylim(0, 1)
+
+# Cumulative PVE plot
+cumPVE   <- qplot(c(1:4), cumsum(PVE))       + 
+            geom_line()                      + 
+            xlab("Principal Component")      + 
+            ylab(NULL)                       + 
+            ggtitle("Cumulative Scree Plot") +
+            ylim(0,1)
+
+grid.arrange(PVEplot, cumPVE, ncol = 2)
+```
+
+
+
+# interpretation / selection variables
+
+
+```{r,message=F,warning=F}
+summary(dynamic.population.pca)
+summary(economic.pca)
+summary(health.pca)
+summary(health.performance.pca)
+summary(house.characteristics.pca)
+```
+
+
+## 1) Population's dynamic
+
+```{r,message=F,warning=F,echo=F}
+
+
+
+#########
+library(devtools)
+install_github("vqv/ggbiplot")
+
+library(ggbiplot)
+ggbiplot(socialdets.pca)
+
+
+
+#############
+
+dynamic.dimension       <- dynamic.population.pca$x
+economic.dimension      <- economic.pca$x
+health.dimension        <- health.pca$x
+
+mean(dynamic.dimension)
+sd(dynamic.dimension)
+
+mean(economic.dimension)
+sd(economic.dimension)
+
+mean(health.dimension)
+sd(health.dimension)
+
+```
+
+## 2) Economics
+
+```{r,message=F,warning=F,echo=F}
+
+
+#########
+library(devtools)
+install_github("vqv/ggbiplot")
+
+library(ggbiplot)
+ggbiplot(economic.pca)
+
+
+
+#############
+
+economic.dimension <- economic.pca$x
+
+biplot(economic.pca, scale = 0)
+```
+
+
+## 2) Household characteristics
+
+```{r,message=F,warning=F,echo=F}
+
+
+#########
+library(devtools)
+install_github("vqv/ggbiplot")
+
+library(ggbiplot)
+ggbiplot(economic.pca)
+
+
+
+#############
+
+economic.dimension <- economic.pca$x
+
+biplot(economic.pca, scale = 0)
+```
+
+
+# Final database of determinants 
+
+
+```{r,message=F,warning=F,echo=F}
+
+
+
+```
+
