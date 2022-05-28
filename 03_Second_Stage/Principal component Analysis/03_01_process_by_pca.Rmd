@@ -7,11 +7,11 @@ output: html_document
 
 ```{r,message=F,warning=F,eval=F}
 
-source("excess_functions.R")
+#source("excess_functions.R")
 library(tidyverse)
 ####
 # Provincial
-social.dets  <- readRDS("vulnr_df_prov.rds")         %>% 
+social.dets  <- readRDS("./01_DB/vulnr_df_prov.rds")         %>% 
                       rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
                        pr_edu_inf_25       = INEI_prop_niv.insInf_25yrs,
                        pr_pov_2018         = prop_pobreza_2018,                    # poverty
@@ -48,7 +48,7 @@ social.dets  <- readRDS("vulnr_df_prov.rds")         %>%
 
 ####################################################
 # departamental 
-social.dets.dep <- readRDS("social_dets_dep.rds")                                   %>% 
+social.dets.dep <- readRDS("./01_DB/social_dets_dep.rds")                                   %>% 
                    select(dep,Endes_Prop_Diab,Endes_Prop_Fuma_Diario,
                         Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
                         Enfermeras_10khab,Farmaceuticos_10khab,
