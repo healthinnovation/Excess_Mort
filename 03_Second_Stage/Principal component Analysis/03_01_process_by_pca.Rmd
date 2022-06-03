@@ -5,14 +5,36 @@ date: "27/5/2022"
 output: html_document
 ---
 
+#1. Librerías
+
+```{r}
+library(tidyverse)
+library(gridExtra)
+#library(devtools)
+#install_github("vqv/ggbiplot")
+library(ggbiplot)
+```
+
+
+#2. Directorio
+
+```{r}
+main   <- "C:/Users/braul/Desktop/05_personal_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Principal component Analysis"
+input  <- paste(main, sep = "", "/01_DB")
+output <- paste(main, sep = "", "/02_output")
+```
+
+
+#3. Importación
+
 ```{r,message=F,warning=F,eval=F}
 
-#source("excess_functions.R")
+source("excess_functions.R")
 library(tidyverse)
 ####
 # Provincial
-social.dets  <- readRDS("./01_DB/vulnr_df_prov.rds")         %>% 
-                      rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
+social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>% 
+                dplyr::rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
                        pr_edu_inf_25       = INEI_prop_niv.insInf_25yrs,
                        pr_pov_2018         = prop_pobreza_2018,                    # poverty
                        pr_wout_water       = INEI_prop_NoAbsAguVvn_int_2017,       # prp de pob wihout  water
@@ -42,19 +64,15 @@ social.dets  <- readRDS("./01_DB/vulnr_df_prov.rds")         %>%
                         )
 
 
-
-
-
-
 ####################################################
 # departamental 
-social.dets.dep <- readRDS("./01_DB/social_dets_dep.rds")                                   %>% 
+social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))               %>% 
                    select(dep,Endes_Prop_Diab,Endes_Prop_Fuma_Diario,
                         Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
                         Enfermeras_10khab,Farmaceuticos_10khab,
                         TecMedicos_10khab,
                         Medicos_10khab,Presupuesto_salud,Presupuesto_publico)     %>% 
-                   rename(pr_diab               = Endes_Prop_Diab,
+            dplyr::rename(pr_diab               = Endes_Prop_Diab,
                           pr_smoke              = Endes_Prop_Fuma_Diario,
                           pr_hyper_tension      = Endes_Prop_HA,
                           pr_obes               = ENDES_prop_Obes,
@@ -68,17 +86,10 @@ social.dets.dep <- readRDS("./01_DB/social_dets_dep.rds")                       
 
 ####################################################
 
-
-
-
-
-
-
-
 ```
 
-# Principal components analysis
 
+# 4. Principal components analysis
 
 ```{r,message=F,warning=F}
 
@@ -86,42 +97,40 @@ social.dets.dep <- readRDS("./01_DB/social_dets_dep.rds")                       
 
 dynamic.population.pca        <- prcomp(social.dets     %>% 
                                  select(pr_edu_oth_distr,pr_wrk_oth_distr,
-                                 pr_liv_oth_distr), center = TRUE,scale. = TRUE) #pr_no_vehiculo
+                                 pr_liv_oth_distr), center = TRUE,scale. = TRUE) 
 
 economic.pca                  <- prcomp(social.dets     %>% 
-                                 select(pr_insu,pr_NBI), center = TRUE,scale. = TRUE) # pr_pov_2018,
+                                 select(pr_insu, pr_pov_2018, pr_no_trabajo_pago), center = TRUE,scale. = TRUE) 
 
 health.status.pca             <- prcomp(social.dets.dep %>% 
-                                 select(pr_diab,pr_smoke,pr_hyper_tension,
-                                 pr_obes,pr_tos), center = TRUE,scale. = TRUE)
+                                   select(pr_diab, pr_obes, pr_tos), center = TRUE,scale. = TRUE)
 
 health.performance.pca        <- prcomp(social.dets.dep %>% 
-                                 select(med_x_100,enf_x_100,far_x_100,
-                                 tecmed_x_100,pr_salud_presupuesto), center = TRUE,scale. = TRUE)
+                                 select(med_x_100, far_x_100,
+                                 enf_x_100), center = TRUE,scale. = TRUE)
 
 house.characteristics.pca      <- prcomp(social.dets     %>% 
-                                  select(INEI_prop_Nopared_ladrillo_cemento,
-                                        INEI_prop_No_techo_concreto,
-                                        INEI_prop_Nopiso_cemento_loseta,
-                                        pr_urban_2017), center = TRUE,scale. = TRUE)
-
+                                  select(INEI_prop_No_techo_concreto, INEI_prop_Nopared_ladrillo_cemento,   
+                                         INEI_prop_Nopiso_cemento_loseta), center = TRUE,scale. = TRUE)
 
 ```
 
 
-# Number of dimensions
+
+# 5. Number of dimensions
 
 ## 1) Population's dynamic
 
 ```{r,eval=F,message=F,warning=F}
 library(gridExtra)
+library(grid)
 
 (VE <- dynamic.population.pca$sdev^2)
 PVE <- VE / sum(VE)
 round(PVE, 2)
 
 
-PVEplot  <-  qplot(c(1:4), PVE) + 
+PVEplot  <-  qplot(c(1:3), PVE) + 
              geom_line() + 
              xlab("Principal Component") + 
              ylab("PVE") +
@@ -129,7 +138,7 @@ PVEplot  <-  qplot(c(1:4), PVE) +
              ylim(0, 1)
 
 # Cumulative PVE plot
-cumPVE   <- qplot(c(1:4), cumsum(PVE))       + 
+cumPVE   <- qplot(c(1:3), cumsum(PVE))       + 
             geom_line()                      + 
             xlab("Principal Component")      + 
             ylab(NULL)                       + 
@@ -179,7 +188,7 @@ PVE <- VE / sum(VE)
 round(PVE, 2)
 
 
-PVEplot  <-  qplot(c(1:4), PVE) +   # Adjust accord to dimension's number
+PVEplot  <-  qplot(c(1:3), PVE) +   # Adjust accord to dimension's number
              geom_line() + 
              xlab("Principal Component") + 
              ylab("PVE") +
@@ -187,7 +196,7 @@ PVEplot  <-  qplot(c(1:4), PVE) +   # Adjust accord to dimension's number
              ylim(0, 1)
 
 # Cumulative PVE plot
-cumPVE   <- qplot(c(1:4), cumsum(PVE))       + 
+cumPVE   <- qplot(c(1:3), cumsum(PVE))       + 
             geom_line()                      + 
             xlab("Principal Component")      + 
             ylab(NULL)                       + 
@@ -199,8 +208,7 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 
 
 
-#selection variables
-
+# 6. Selection variables
 
 ```{r,message=F,warning=F}
 # obj: Max Proportion of Variance del primer componente 
@@ -209,125 +217,120 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 summary(dynamic.population.pca)
 summary(economic.pca)
 summary(health.performance.pca)
+summary(health.status.pca)
 summary(house.characteristics.pca)
 ```
 
-# interpretation / biplot
+
+
+# 7. Interpretation / biplot
 
 ## 1) Population's dynamic
 
 ```{r,message=F,warning=F,echo=F}
-
-
-
 #########
-library(devtools)
-install_github("vqv/ggbiplot")
-
-library(ggbiplot)
-ggbiplot(socialdets.pca)
-
-
-
-#############
-
+ggbiplot(dynamic.population.pca)
 dynamic.dimension       <- dynamic.population.pca$x
-economic.dimension      <- economic.pca$x
-health.dimension        <- health.pca$x
+biplot(dynamic.population.pca, scale = 0)
 
-mean(dynamic.dimension)
-sd(dynamic.dimension)
-
-mean(economic.dimension)
-sd(economic.dimension)
-
-mean(health.dimension)
-sd(health.dimension)
+# mean(dynamic.dimension)
+# sd(dynamic.dimension)
+#
+# mean(economic.dimension)
+# sd(economic.dimension)
+# 
+# mean(health.dimension)
+# sd(health.dimension)
 
 ```
 
 ## 2) Economics
 
 ```{r,message=F,warning=F,echo=F}
-
-
-#########
-library(devtools)
-install_github("vqv/ggbiplot")
-
-library(ggbiplot)
 ggbiplot(economic.pca)
-
-
-
-#############
-
 economic.dimension <- economic.pca$x
-
 biplot(economic.pca, scale = 0)
 ```
 
 
-## 2) Household characteristics
+## 3) Household characteristics
 
 ```{r,message=F,warning=F,echo=F}
-
-
-#########
-library(devtools)
-install_github("vqv/ggbiplot")
-
-library(ggbiplot)
-ggbiplot(economic.pca)
-
-
-
-#############
-
-economic.dimension <- economic.pca$x
-
-biplot(economic.pca, scale = 0)
+ggbiplot(house.characteristics.pca)
+house.characteristics.dimension   <- house.characteristics.pca$x
+biplot(house.characteristics.pca, scale = 0)
 ```
 
 
-# Final database of determinants 
-
+## 4) Health
 
 ```{r,message=F,warning=F,echo=F}
+ggbiplot(health.performance.pca)
+health.performance.dimension   <- health.performance.pca$x
+biplot(health.performance.pca, scale = 0)
 
+ggbiplot(health.status.pca)
+health.status.dimension   <- health.status.pca$x
+biplot(health.status.pca, scale = 0)
+```
+
+```{r}
+dynamic.population.dim  <-  dynamic.population.pca$x %>% 
+                            as.data.frame() %>% 
+                            select(PC1) %>% 
+                            dplyr::rename(dynamic.population.dim = PC1)
+```
+
+
+#8. Final database of determinants 
+
+```{r,message=F,warning=F,echo=F}
 
 # Componentes n =196 
 
-dynamic.population.dim    <-dynamic.population.pca$x %>% 
+dynamic.population.dim  <-  dynamic.population.pca$x %>% 
                             as.data.frame() %>% 
                             select(PC1) %>% 
-                            rename(dynamic.population.dim= PC1)
+                            dplyr::rename(dynamic.population.dim = PC1)
 
-economic.dim              <-economic.pca$x %>% 
+economic.dim            <-  economic.pca$x %>% 
                             as.data.frame() %>% 
                             select(PC1) %>% 
-                            rename(economic.dim = PC1)
+                            dplyr::rename(economic.dim = PC1)
 
-health.status.dim         <-health.status.pca$x %>% 
+house.characteristics.dim <- house.characteristics.pca$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(house.characteristics.dim = PC1)
+
+health.status.dim       <-  health.status.pca$x %>% 
                             as.data.frame() %>% 
-                            select(PC1) %>% 
-                            rename(health.status.dim = PC1)
+                            select(PC1)  %>% 
+                            dplyr::rename(health.status.dim = PC1)
 
-health.performance.dim    <-health.performance.pca$x %>% 
+health.performance.dim  <-  health.performance.pca$x %>% 
                             as.data.frame() %>% 
-                            select(PC1) %>% 
-                            rename(health.performance.dim = PC1)
+                            select(PC1)  %>% 
+                            dplyr::rename(health.performance.dim = PC1)
 
-house.characteristics.dim <-house.characteristics.pca$x %>% 
-                            as.data.frame() %>% 
-                            select(PC1) %>% 
-                            rename(house.characteristics.dim = PC1)
 
-social.dets %>% 
-left_join(health.status.dim,c(" = "))
-# left JOIN
-dim(health.status.dim)      # 25 
-dim(dynamic.population.dim) # 196 
+social.dets.pca <- left_join( cbind(social.dets, dynamic.population.dim, economic.dim, house.characteristics.dim) ,
+                             cbind(health.status.dim, health.performance.dim, social.dets %>%  summarise(dep = unique(dep))) ,
+                             by = c("dep" = "dep") ) %>% 
+                  relocate(dynamic.population.dim, 
+                           economic.dim, 
+                           house.characteristics.dim, 
+                           health.performance.dim,
+                           health.status.dim,
+                           .after = prov )
+
+saveRDS(social.dets.pca, file.path(output, "social.dets_pca.rds"))
+
+
+
+# # left JOIN
+# dim(health.status.dim)      # 25 
+# dim(dynamic.population.dim) # 196 
 
 
 # Puntos a tomar en cuenta  
@@ -335,4 +338,9 @@ dim(dynamic.population.dim) # 196
 #  NOTA : dejar para la final la union entre los resultados pca  y la base de datos , caso contrario alteraras la estructura var-cov
 
 ```
+
+`
+
+
+
 
