@@ -340,18 +340,11 @@ saveRDS(social.dets.pca, file.path(output, "social.dets_pca.rds"))
 ```
 
 
-# Check database
+# Final database
 
 ```{r,message=F,warning=F}
-library(tidyverse)
-social.dets   <- readRDS("./02_output/social_dets_pca.rds")                               %>% 
-                 select(dynamic.population.dim,economic.dim,house.characteristics.dim,
-                        health.performance.dim,health.status.dim)                         %>% 
-                 mutate(edu.dim       = as.vector(social.dets$education_dimension),
-                        demo.dim      = as.vector(social.dets$demographic_dimension)
-                        )
 
-
+# "social.dets.pca"  . A este archivo es necesario introducirle las dimensiones de una sola variable ( estandarizacion de determinadas variables) , y probar nuevas variables . La estandarizacion si debe generar nuevas columnas en la bd final ejm econdim1 , econ_dim2, econ dim_3(pca de nbi y pobreza, nbi estandarizada , pobreza estandarizada). Asimismo las nuevas combinaciones solo son pruebas para ver si se puede mejorar la var explicada hasta el momento 
 ```
 
 
