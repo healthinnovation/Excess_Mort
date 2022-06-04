@@ -11,10 +11,14 @@ output: html_document
 ```{r,message=F,warning=F,echo=F}
 
 library(tidyverse)
-social.dets   <- readRDS("./02_output/social_dets_pca.rds")                               %>% 
+social.dets   <- readRDS("./pca/02_output/social_dets_pca.rds")                               %>% 
                  select(dynamic.population.dim,economic.dim,house.characteristics.dim,
-                        health.performance.dim,health.status.dim)                         %>% 
-                 mutate(edu.dim       = as.vector(social.dets$education_dimension),
+                        health.performance.dim,health.status.dim)                             
+
+
+
+social.dets   <-  social.dets %>% 
+                  mutate(edu.dim       = as.vector(social.dets$education_dimension),
                         demo.dim      = as.vector(social.dets$demographic_dimension)
                         )
 
