@@ -6,23 +6,194 @@ output: html_document
 
 
 
-
+## Men
 
 ```{r,message=F,warning=F,echo=F}
 
 library(tidyverse)
-social.dets   <- readRDS("./pca/02_output/social_dets_pca.rds")                               %>% 
-                 select(dynamic.population.dim,economic.dim,house.characteristics.dim,
-                        health.performance.dim,health.status.dim)                             
+library(lubridate)
+
+# social variables
 
 
+social.dets   <- readRDS("./pca/02_output/social_dets_pca.rds") 
+edu.dim       <-social.dets$education_dimension
+demo.dim      <- social.dets$demographic_dimension
 
-social.dets   <-  social.dets %>% 
-                  mutate(edu.dim       = as.vector(social.dets$education_dimension),
-                        demo.dim      = as.vector(social.dets$demographic_dimension)
+
+social.dets   <- social.dets                                                              %>% 
+                 select(dep,prov,dynamic.population.dim,economic.dim,house.characteristics.dim,
+                        health.performance.dim,health.status.dim)                         %>% 
+                  mutate(edu.dim       = edu.dim,
+                        demo.dim       = demo.dim
                         )
 
 
+# Climatic data
+  
+  #2.1 llamar datos de tmx
+  
+  db.tmx     <-  readRDS("temperatura_2017-2021.rds")      %>%
+                 ungroup()                                 %>% 
+                 rename(year  = anio,
+                        month = mes,
+                        temp   = temperatura)               %>% 
+                 arrange(reg,prov,year,month,temp)
 
+ #2.2 LLamar datos prcp 
+  
+ db.prcp    <- readRDS("precipitation_2017-2021.rds")      %>%
+                 ungroup()                                 %>% 
+                 rename(year  = anio,
+                        month = mes,
+                        prcp   = precipitation)             %>% 
+                 arrange(reg,prov,year,month,prcp)
+ 
+ 
+ 
+
+
+
+```
+
+### 2020
+
+
+```{r,message=F,warning=F,echo=F}
+db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                      %>% 
+                filter(year==2020)                                                    %>% 
+                rename(
+                       E         = forcast
+
+                )                                                                     %>% 
+                mutate(month = month(date))
+         
+  
+  
+  
+db.men.post  <- db.men                                                               %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+                #climatic variables
+                left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+                left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+
+
+                mutate( std.prcp  = scale.default(prcp),
+                        std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
+                )
+
+
+
+saveRDS(db.men.post,"db_men_fulldim_2020.rds")
+colSums(is.na(db.men.post))  
+```
+
+
+### 2021 
+
+```{r,message=F,warning=F,echo=F}
+
+db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                      %>% 
+                filter(year==2021)                                                    %>% 
+                rename(
+                       E         = forcast
+
+                )                                                                     %>% 
+                mutate(month = month(date))
+         
+  
+  
+  
+db.men.post  <- db.men                                                               %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+                #climatic variables
+                left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+                left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+
+
+                mutate( std.prcp  = scale.default(prcp),
+                        std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
+                )
+
+
+
+saveRDS(db.men.post,"db_men_fulldim_2021.rds")
+colSums(is.na(db.men.post))  
+
+
+```
+
+## Women
+
+
+### 2020
+
+```{r,message=F,warning=F}
+db.women       <- readRDS("bd_deaths_postModel_wm_3_16_3_xpop.rds")                      %>% 
+                filter(year==2020)                                                    %>% 
+                rename(
+                       E         = forcast
+
+                )                                                                     %>% 
+                mutate(month = month(date))
+         
+  
+  
+  
+db.women.post  <- db.women                                                               %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+                #climatic variables
+                left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+                left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+
+
+                mutate( std.prcp  = scale.default(prcp),
+                        std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
+                )
+
+
+
+saveRDS(db.women.post,"db_women_fulldim_2020.rds")
+colSums(is.na(db.men.post))  
+```
+
+
+### 2021 
+
+```{r,message=F,warning=F}
+db.women       <- readRDS("bd_deaths_postModel_wm_3_16_3_xpop.rds")                      %>% 
+                filter(year==2021)                                                    %>% 
+                rename(
+                       E         = forcast
+
+                )                                                                     %>% 
+                mutate(month = month(date))
+         
+  
+  
+  
+db.women.post  <- db.women                                                               %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+                #climatic variables
+                left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+                left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
+                                                "year"="year","month"="month"))      %>% 
+
+
+                mutate( std.prcp  = scale.default(prcp),
+                        std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
+                )
+
+
+
+saveRDS(db.women.post,"db_women_fulldim_2021.rds")
+colSums(is.na(db.men.post))  
 ```
 
