@@ -16,7 +16,7 @@ library(lubridate)
 # social variables
 
 
-social.dets   <- readRDS("./pca/02_output/social_dets_pca.rds") 
+social.dets   <- readRDS("./1.pca/02_output/social_dets_pca.rds") 
 edu.dim       <-social.dets$education_dimension
 demo.dim      <- social.dets$demographic_dimension
 
@@ -24,8 +24,8 @@ demo.dim      <- social.dets$demographic_dimension
 social.dets   <- social.dets                                                              %>% 
                  select(dep,prov,dynamic.population.dim,economic.dim,house.characteristics.dim,
                         health.performance.dim,health.status.dim)                         %>% 
-                  mutate(edu.dim       = edu.dim,
-                        demo.dim       = demo.dim
+                  mutate(edu.dim       = as.vector(edu.dim),
+                        demo.dim       = as.vector(demo.dim)
                         )
 
 
