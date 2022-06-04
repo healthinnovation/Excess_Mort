@@ -339,7 +339,16 @@ saveRDS(social.dets.pca, file.path(output, "social.dets_pca.rds"))
 
 ```
 
-`
+
+# Check database
+
+```{r,message=F,warning=F}
+
+social.dets<-readRDS("./02_output")
+
+
+```
+
 
 
 
