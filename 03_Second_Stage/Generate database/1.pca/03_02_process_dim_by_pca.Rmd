@@ -19,7 +19,7 @@ library(ggbiplot)
 #2. Directorio
 
 ```{r}
-main   <- "C:/Users/braul/Desktop/05_personal_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Principal component Analysis"
+main   <- "C:/Users/braul/Desktop/05_personal_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database/1.pca"
 input  <- paste(main, sep = "", "/01_DB")
 output <- paste(main, sep = "", "/02_output")
 ```
@@ -57,10 +57,14 @@ social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>%
                        pr_no_casa_titu     = INEI_prop_Notenenciaviv_2017,
                        pr_no_vehiculo      = INEI_prop_novehiculo_2017
                        
-                # Education and demographic dimension        
+                # Education and demographic dimension
+                # Dimensión económica con variables estandarizadas
                 ) %>% 
-                mutate( education_dimension   = scale.default(pr_edu_inf_25),
-                        demographic_dimension = scale.default(pr_no_bl_mz)
+                mutate( educ_dim   = scale.default(pr_edu_inf_25),
+                        demog_dim  = scale.default(pr_no_bl_mz),
+                        econ_dim_3 = scale.default(pr_insu),
+                        econ_dim_4 = scale.default(pr_pov_2018),
+                        econ_dim_5 = scale.default(pr_NBI)
                         )
 
 
@@ -82,7 +86,17 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                           enf_x_100             = Enfermeras_10khab/10,
                           far_x_100             = Farmaceuticos_10khab/10,
                         tecmed_x_100          = TecMedicos_10khab/10,
-                        pr_salud_presupuesto  = Presupuesto_salud/Presupuesto_publico)
+                        pr_salud_presupuesto  = Presupuesto_salud/Presupuesto_publico,
+                        
+                        #Dimensión salud con variables estandarizadas
+                        
+                        health_status_dim_3      = scale.default(pr_diab),
+                        health_status_dim_4      = scale.default(pr_obes),  
+                        health_status_dim_5      = scale.default(pr_tos),
+                        health_performance_dim_3 = scale.default(med_x_100),
+                        health_performance_dim_4 = scale.default(enf_x_100),
+                        health_performance_dim_5 = scale.default(far_x_100)
+                        )
 
 ####################################################
 
@@ -288,43 +302,47 @@ dynamic.population.dim  <-  dynamic.population.pca$x %>%
 
 # Componentes n =196 
 
-dynamic.population.dim  <-  dynamic.population.pca$x %>% 
-                            as.data.frame() %>% 
-                            select(PC1) %>% 
-                            dplyr::rename(dynamic.population.dim = PC1)
-
-economic.dim            <-  economic.pca$x %>% 
-                            as.data.frame() %>% 
-                            select(PC1) %>% 
-                            dplyr::rename(economic.dim = PC1)
-
-house.characteristics.dim <- house.characteristics.pca$x %>% 
+dynamic_pop_dim_1        <-  dynamic.population.pca$x %>% 
                              as.data.frame() %>% 
                              select(PC1) %>% 
-                             dplyr::rename(house.characteristics.dim = PC1)
+                             dplyr::rename(dynamic_pop_dim_1  = PC1)
 
-health.status.dim       <-  health.status.pca$x %>% 
-                            as.data.frame() %>% 
-                            select(PC1)  %>% 
-                            dplyr::rename(health.status.dim = PC1)
+econ_dim_1               <-  economic.pca$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(econ_dim_1  = PC1)
 
-health.performance.dim  <-  health.performance.pca$x %>% 
-                            as.data.frame() %>% 
-                            select(PC1)  %>% 
-                            dplyr::rename(health.performance.dim = PC1)
+house_charact_dim_1      <-  house.characteristics.pca$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(house_charact_dim_1 = PC1)
+
+health_status_dim_1      <-  health.status.pca$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1)  %>% 
+                             dplyr::rename(health_status_dim_1 = PC1)
+
+health_performance_dim_1  <-  health.performance.pca$x %>% 
+                              as.data.frame() %>% 
+                              select(PC1)  %>% 
+                              dplyr::rename(health_performance_dim_1 = PC1)
 
 
-social.dets.pca <- left_join( cbind(social.dets, dynamic.population.dim, economic.dim, house.characteristics.dim) ,
-                             cbind(health.status.dim, health.performance.dim, social.dets %>%  summarise(dep = unique(dep))) ,
-                             by = c("dep" = "dep") ) %>% 
-                  relocate(dynamic.population.dim, 
-                           economic.dim, 
-                           house.characteristics.dim, 
-                           health.performance.dim,
-                           health.status.dim,
-                           .after = prov )
+social.dets.pca <- left_join( cbind(social.dets, dynamic_pop_dim_1, econ_dim_1, house_charact_dim_1) ,
+                              cbind(health_status_dim_1, health_performance_dim_1, 
+                                    social.dets.dep %>%  dplyr::select(dep, health_status_dim_3, health_status_dim_4, health_status_dim_5, 
+                                                                            health_performance_dim_3, health_performance_dim_4, health_performance_dim_5) ) ,
+                              by = c("dep" = "dep") ) %>% 
+                   dplyr::select(dep, prov, 
+                                 educ_dim, demog_dim, 
+                                 dynamic_pop_dim_1, 
+                                 econ_dim_1, econ_dim_3, econ_dim_4, econ_dim_5,
+                                 house_charact_dim_1,
+                                 health_status_dim_1, health_status_dim_3, health_status_dim_4, health_status_dim_5,
+                                 health_performance_dim_1, health_performance_dim_3, health_performance_dim_4, health_performance_dim_5)
+                            
 
-saveRDS(social.dets.pca, file.path(output, "social.dets_pca.rds"))
+saveRDS(social.dets.pca, file.path(output, "social_dets_pca.rds"))
 
 
 
