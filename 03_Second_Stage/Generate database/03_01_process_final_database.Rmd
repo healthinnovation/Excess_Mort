@@ -21,13 +21,6 @@ edu.dim       <-social.dets$education_dimension
 demo.dim      <- social.dets$demographic_dimension
 
 
-social.dets   <- social.dets                                                              %>% 
-                 select(dep,prov,dynamic.population.dim,economic.dim,house.characteristics.dim,
-                        health.performance.dim,health.status.dim)                         %>% 
-                  mutate(edu.dim       = as.vector(edu.dim),
-                        demo.dim       = as.vector(demo.dim)
-                        )
-
 
 # Climatic data
   
