@@ -79,7 +79,7 @@ db.men.post  <- db.men                                                          
 
 
 
-saveRDS(db.men.post,"db_men_fulldim_2020.rds")
+saveRDS(db.men.post,"./2.output_db/db_men_fulldim_2020.rds")
 colSums(is.na(db.men.post))  
 ```
 
@@ -114,7 +114,7 @@ db.men.post  <- db.men                                                          
 
 
 
-saveRDS(db.men.post,"db_men_fulldim_2021.rds")
+saveRDS(db.men.post,"./2.output_db/db_men_fulldim_2021.rds")
 colSums(is.na(db.men.post))  
 
 
@@ -152,7 +152,7 @@ db.women.post  <- db.women                                                      
 
 
 
-saveRDS(db.women.post,"db_women_fulldim_2020.rds")
+saveRDS(db.women.post,"./2.output_db/db_women_fulldim_2020.rds")
 colSums(is.na(db.men.post))  
 ```
 
@@ -186,7 +186,7 @@ db.women.post  <- db.women                                                      
 
 
 
-saveRDS(db.women.post,"db_women_fulldim_2021.rds")
+saveRDS(db.women.post,"./2.output_db/db_women_fulldim_2021.rds")
 colSums(is.na(db.men.post))  
 #db.women.2021<-readRDS("db_women_fulldim_2021.rds")
 ```
