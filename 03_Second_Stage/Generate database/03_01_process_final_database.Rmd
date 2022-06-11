@@ -188,5 +188,6 @@ db.women.post  <- db.women                                                      
 
 saveRDS(db.women.post,"db_women_fulldim_2021.rds")
 colSums(is.na(db.men.post))  
+#db.women.2021<-readRDS("db_women_fulldim_2021.rds")
 ```
 
