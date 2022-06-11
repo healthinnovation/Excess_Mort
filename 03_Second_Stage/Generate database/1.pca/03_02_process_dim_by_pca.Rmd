@@ -60,11 +60,11 @@ social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>%
                 # Education and demographic dimension
                 # Dimensión económica con variables estandarizadas
                 ) %>% 
-                mutate( educ_dim   = scale.default(pr_edu_inf_25),
-                        demog_dim  = scale.default(pr_no_bl_mz),
-                        econ_dim_3 = scale.default(pr_insu),
-                        econ_dim_4 = scale.default(pr_pov_2018),
-                        econ_dim_5 = scale.default(pr_NBI)
+                mutate( educ_dim   = as.numeric(scale.default(pr_edu_inf_25)),
+                        demog_dim  = as.numeric(scale.default(pr_no_bl_mz)),
+                        econ_dim_3 = as.numeric(scale.default(pr_insu)),
+                        econ_dim_4 = as.numeric(scale.default(pr_pov_2018)),
+                        econ_dim_5 = as.numeric(scale.default(pr_NBI))
                         )
 
 
@@ -90,17 +90,18 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         
                         #Dimensión salud con variables estandarizadas
                         
-                        health_status_dim_3      = scale.default(pr_diab),
-                        health_status_dim_4      = scale.default(pr_obes),  
-                        health_status_dim_5      = scale.default(pr_tos),
-                        health_performance_dim_3 = scale.default(med_x_100),
-                        health_performance_dim_4 = scale.default(enf_x_100),
-                        health_performance_dim_5 = scale.default(far_x_100)
+                        health_status_dim_3      = as.numeric(scale.default(pr_diab)),
+                        health_status_dim_4      = as.numeric(scale.default(pr_obes)),  
+                        health_status_dim_5      = as.numeric(scale.default(pr_tos)),
+                        health_performance_dim_3 = as.numeric(scale.default(med_x_100)),
+                        health_performance_dim_4 = as.numeric(scale.default(enf_x_100)),
+                        health_performance_dim_5 = as.numeric(scale.default(far_x_100))
                         )
 
 ####################################################
 
 ```
+
 
 
 # 4. Principal components analysis
@@ -109,23 +110,42 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
 
 # variables , componentes , dimensiones 
 
-dynamic.population.pca        <- prcomp(social.dets     %>% 
+dynamic.population.pca_1      <- prcomp(social.dets     %>%
                                  select(pr_edu_oth_distr,pr_wrk_oth_distr,
-                                 pr_liv_oth_distr), center = TRUE,scale. = TRUE) 
+                                 pr_liv_oth_distr), center = TRUE,scale. = TRUE)
 
-economic.pca                  <- prcomp(social.dets     %>% 
+dynamic.population.pca_2      <- prcomp(social.dets     %>% 
+                                 select(pr_edu_oth_distr, pr_wrk_oth_distr,
+                                 pr_no_vehiculo), center = TRUE,scale. = TRUE) 
+
+economic.pca_1                <- prcomp(social.dets     %>% 
+                                 select(pr_insu, pr_pov_2018), center = TRUE,scale. = TRUE) 
+
+economic.pca_2                <- prcomp(social.dets     %>% 
                                  select(pr_insu, pr_pov_2018, pr_no_trabajo_pago), center = TRUE,scale. = TRUE) 
 
-health.status.pca             <- prcomp(social.dets.dep %>% 
-                                   select(pr_diab, pr_obes, pr_tos), center = TRUE,scale. = TRUE)
+house.characteristics.pca_1   <- prcomp(social.dets     %>% 
+                                 select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
+                                        INEI_prop_Nopiso_cemento_loseta), center = TRUE,scale. = TRUE)
 
-health.performance.pca        <- prcomp(social.dets.dep %>% 
-                                 select(med_x_100, far_x_100,
-                                 enf_x_100), center = TRUE,scale. = TRUE)
+house.characteristics.pca_2   <- prcomp(social.dets     %>% 
+                                 select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
+                                        INEI_prop_Nopiso_cemento_loseta, pr_urban_2017), center = TRUE,scale. = TRUE)
 
-house.characteristics.pca      <- prcomp(social.dets     %>% 
-                                  select(INEI_prop_No_techo_concreto, INEI_prop_Nopared_ladrillo_cemento,   
-                                         INEI_prop_Nopiso_cemento_loseta), center = TRUE,scale. = TRUE)
+health.status.pca_1           <- prcomp(social.dets.dep %>% 
+                                 select(pr_diab, pr_obes, pr_tos), center = TRUE,scale. = TRUE)
+
+health.status.pca_2           <- prcomp(social.dets.dep %>% 
+                                 select(pr_diab, pr_obes, pr_tos, pr_smoke), center = TRUE,scale. = TRUE)
+
+health.performance.pca_1      <- prcomp(social.dets.dep %>% 
+                                 select(med_x_100, enf_x_100,
+                                        far_x_100), center = TRUE,scale. = TRUE)
+
+health.performance.pca_2      <- prcomp(social.dets.dep %>% 
+                                 select(med_x_100, enf_x_100,
+                                        pr_salud_presupuesto), center = TRUE,scale. = TRUE)
+
 
 ```
 
@@ -228,11 +248,16 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 # obj: Max Proportion of Variance del primer componente 
 # supuesto: el 1er componente es la dimension que queremos modelar 
 # con al menos 3 variables maximizar 
-summary(dynamic.population.pca)
-summary(economic.pca)
-summary(health.performance.pca)
-summary(health.status.pca)
-summary(house.characteristics.pca)
+summary(dynamic.population.pca_1)
+summary(dynamic.population.pca_2)
+summary(economic.pca_1)
+summary(economic.pca_2)
+summary(health.performance.pca_1)
+summary(health.performance.pca_2)
+summary(health.status.pca_1)
+summary(health.status.pca_2)
+summary(house.characteristics.pca_1)
+summary(house.characteristics.pca_2)
 ```
 
 
@@ -302,44 +327,70 @@ dynamic.population.dim  <-  dynamic.population.pca$x %>%
 
 # Componentes n =196 
 
-dynamic_pop_dim_1        <-  dynamic.population.pca$x %>% 
+dynamic_pop_dim_1        <-  dynamic.population.pca_1$x %>% 
                              as.data.frame() %>% 
                              select(PC1) %>% 
                              dplyr::rename(dynamic_pop_dim_1  = PC1)
 
-econ_dim_1               <-  economic.pca$x %>% 
+dynamic_pop_dim_2        <-  dynamic.population.pca_2$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(dynamic_pop_dim_2  = PC1)
+
+econ_dim_1               <-  economic.pca_1$x %>% 
                              as.data.frame() %>% 
                              select(PC1) %>% 
                              dplyr::rename(econ_dim_1  = PC1)
 
-house_charact_dim_1      <-  house.characteristics.pca$x %>% 
+econ_dim_2               <-  economic.pca_2$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(econ_dim_2  = PC1)
+
+house_charact_dim_1      <-  house.characteristics.pca_1$x %>% 
                              as.data.frame() %>% 
                              select(PC1) %>% 
                              dplyr::rename(house_charact_dim_1 = PC1)
 
-health_status_dim_1      <-  health.status.pca$x %>% 
+house_charact_dim_2      <-  house.characteristics.pca_2$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1) %>% 
+                             dplyr::rename(house_charact_dim_2 = PC1)
+
+health_status_dim_1      <-  health.status.pca_1$x %>% 
                              as.data.frame() %>% 
                              select(PC1)  %>% 
                              dplyr::rename(health_status_dim_1 = PC1)
 
-health_performance_dim_1  <-  health.performance.pca$x %>% 
+health_status_dim_2      <-  health.status.pca_2$x %>% 
+                             as.data.frame() %>% 
+                             select(PC1)  %>% 
+                             dplyr::rename(health_status_dim_2 = PC1)
+
+health_performance_dim_1  <-  health.performance.pca_1$x %>% 
                               as.data.frame() %>% 
                               select(PC1)  %>% 
                               dplyr::rename(health_performance_dim_1 = PC1)
 
+health_performance_dim_2  <-  health.performance.pca_2$x %>% 
+                              as.data.frame() %>% 
+                              select(PC1)  %>% 
+                              dplyr::rename(health_performance_dim_2 = PC1)
 
-social.dets.pca <- left_join( cbind(social.dets, dynamic_pop_dim_1, econ_dim_1, house_charact_dim_1) ,
-                              cbind(health_status_dim_1, health_performance_dim_1, 
+
+
+social.dets.pca <- left_join( cbind(social.dets, dynamic_pop_dim_1, dynamic_pop_dim_2, econ_dim_1, econ_dim_2, house_charact_dim_1, house_charact_dim_2) ,
+                              cbind(health_status_dim_1,health_status_dim_2, health_performance_dim_1, health_performance_dim_2,
                                     social.dets.dep %>%  dplyr::select(dep, health_status_dim_3, health_status_dim_4, health_status_dim_5, 
-                                                                            health_performance_dim_3, health_performance_dim_4, health_performance_dim_5) ) ,
+                                                                       health_performance_dim_3, health_performance_dim_4, health_performance_dim_5) ) ,
                               by = c("dep" = "dep") ) %>% 
                    dplyr::select(dep, prov, 
                                  educ_dim, demog_dim, 
-                                 dynamic_pop_dim_1, 
-                                 econ_dim_1, econ_dim_3, econ_dim_4, econ_dim_5,
-                                 house_charact_dim_1,
-                                 health_status_dim_1, health_status_dim_3, health_status_dim_4, health_status_dim_5,
-                                 health_performance_dim_1, health_performance_dim_3, health_performance_dim_4, health_performance_dim_5)
+                                 dynamic_pop_dim_1, dynamic_pop_dim_2,
+                                 econ_dim_1, econ_dim_2, econ_dim_3, econ_dim_4, econ_dim_5,
+                                 house_charact_dim_1, house_charact_dim_2,
+                                 health_status_dim_1, health_status_dim_2, health_status_dim_3, health_status_dim_4, health_status_dim_5,
+                                 health_performance_dim_1, health_performance_dim_2, health_performance_dim_3, health_performance_dim_4, health_performance_dim_5)
                             
 
 saveRDS(social.dets.pca, file.path(output, "social_dets_pca.rds"))
@@ -364,7 +415,6 @@ saveRDS(social.dets.pca, file.path(output, "social_dets_pca.rds"))
 
 # "social.dets.pca"  . A este archivo es necesario introducirle las dimensiones de una sola variable ( estandarizacion de determinadas variables) , y probar nuevas variables . La estandarizacion si debe generar nuevas columnas en la bd final ejm econdim1 , econ_dim2, econ dim_3(pca de nbi y pobreza, nbi estandarizada , pobreza estandarizada). Asimismo las nuevas combinaciones solo son pruebas para ver si se puede mejorar la var explicada hasta el momento 
 ```
-
 
 
 
