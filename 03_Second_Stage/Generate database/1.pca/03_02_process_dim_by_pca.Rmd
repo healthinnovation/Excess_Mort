@@ -75,7 +75,8 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
                         Enfermeras_10khab,Farmaceuticos_10khab,
                         TecMedicos_10khab,
-                        Medicos_10khab,Presupuesto_salud,Presupuesto_publico)     %>% 
+                        Medicos_10khab,Presupuesto_salud,Presupuesto_publico, 
+                        Pob_T_Int, Prop_vuelos_entrantes)     %>% 
             dplyr::rename(pr_diab               = Endes_Prop_Diab,
                           pr_smoke              = Endes_Prop_Fuma_Diario,
                           pr_hyper_tension      = Endes_Prop_HA,
@@ -103,7 +104,6 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
 ```
 
 
-
 # 4. Principal components analysis
 
 ```{r,message=F,warning=F}
@@ -117,6 +117,11 @@ dynamic.population.pca_1             <- prcomp(social.dets     %>%
 dynamic.population.pca_2             <- prcomp(social.dets     %>% 
                                         select(pr_edu_oth_distr, pr_wrk_oth_distr,
                                         pr_no_vehiculo), center = TRUE,scale. = TRUE) 
+
+dynamic.population.pca_3             <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_edu_oth_distr, pr_wrk_oth_distr),
+                                                   social.dets.dep %>% select(dep, Prop_vuelos_entrantes), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
 
 economic.pca_1                       <- prcomp(social.dets     %>% 
                                         select(pr_insu, pr_pov_2018), center = TRUE,scale. = TRUE) 
@@ -260,6 +265,7 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 # con al menos 3 variables maximizar 
 summary(dynamic.population.pca_1)
 summary(dynamic.population.pca_2)
+summary(dynamic.population.pca_3)
 summary(economic.pca_1)
 summary(economic.pca_2)
 summary(economic.pca_6)
@@ -350,6 +356,12 @@ dynamic_population_dim_2        <-  dynamic.population.pca_2$x %>%
                                     select(PC1) %>% 
                                     dplyr::rename(dynamic_population_dim_2  = PC1)
 
+dynamic_population_dim_3        <-  dynamic.population.pca_3$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(dynamic_population_dim_3  = PC1)
+
+
 economic_dim_1                  <-  economic.pca_1$x %>% 
                                     as.data.frame() %>% 
                                     select(PC1) %>% 
@@ -410,7 +422,7 @@ health_system_status_dim_2      <-  health.system.status.pca_2$x %>%
 
 
 
-social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, economic_dim_1, economic_dim_2, economic_dim_6,
+social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, economic_dim_1, economic_dim_2, economic_dim_6,
                                     house_charact_dim_1, house_charact_dim_2) ,
                               cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7,    
                                     health_system_status_dim_1, health_system_status_dim_2, 
@@ -419,7 +431,7 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                               by = c("dep" = "dep") ) %>% 
                    dplyr::select(dep, prov, 
                                  education_dim, demographics_dim, 
-                                 dynamic_population_dim_1, dynamic_population_dim_2, 
+                                 dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, 
                                  economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6,
                                  house_charact_dim_1, house_charact_dim_2,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
