@@ -27,6 +27,7 @@ output <- paste(main, sep = "", "/02_output")
 
 #3. Importación
 
+
 ```{r,message=F,warning=F,eval=F}
 
 source("excess_functions.R")
@@ -76,7 +77,7 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         Enfermeras_10khab,Farmaceuticos_10khab,
                         TecMedicos_10khab,
                         Medicos_10khab,Presupuesto_salud,Presupuesto_publico, 
-                        Pob_T_Int, Prop_vuelos_entrantes)     %>% 
+                        Pob_T_Int, Prop_vuelos_entrantes, PBI_per_capita)     %>% 
             dplyr::rename(pr_diab               = Endes_Prop_Diab,
                           pr_smoke              = Endes_Prop_Fuma_Diario,
                           pr_hyper_tension      = Endes_Prop_HA,
@@ -102,6 +103,7 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
 ####################################################
 
 ```
+
 
 
 # 4. Principal components analysis
@@ -131,6 +133,17 @@ economic.pca_2                       <- prcomp(social.dets     %>%
 
 economic.pca_6                       <- prcomp(social.dets     %>% 
                                         select(pr_pov_2018, pr_NBI), center = TRUE,scale. = TRUE) 
+
+economic.pca_7                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_insu, pr_pov_2018),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_8                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_pov_2018),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
 
 house.characteristics.pca_1          <- prcomp(social.dets     %>% 
                                         select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
@@ -269,6 +282,8 @@ summary(dynamic.population.pca_3)
 summary(economic.pca_1)
 summary(economic.pca_2)
 summary(economic.pca_6)
+summary(economic.pca_7)
+summary(economic.pca_8)
 summary(house.characteristics.pca_1)
 summary(house.characteristics.pca_2)
 summary(health.pop.status.pca_1)
@@ -377,6 +392,16 @@ economic_dim_6                  <-  economic.pca_6$x %>%
                                     select(PC1) %>% 
                                     dplyr::rename(economic_dim_6  = PC1)
 
+economic_dim_7                  <-  economic.pca_7$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_7  = PC1)
+
+economic_dim_8                  <-  economic.pca_8$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_8  = PC1)
+
 house_charact_dim_1             <-  house.characteristics.pca_1$x %>% 
                                     as.data.frame() %>% 
                                     select(PC1) %>% 
@@ -423,7 +448,7 @@ health_system_status_dim_2      <-  health.system.status.pca_2$x %>%
 
 
 social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, economic_dim_1, economic_dim_2, economic_dim_6,
-                                    house_charact_dim_1, house_charact_dim_2) ,
+                                    economic_dim_7, economic_dim_8, house_charact_dim_1, house_charact_dim_2) ,
                               cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7,    
                                     health_system_status_dim_1, health_system_status_dim_2, 
                                     social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, 
@@ -432,7 +457,7 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                    dplyr::select(dep, prov, 
                                  education_dim, demographics_dim, 
                                  dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, 
-                                 economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6,
+                                 economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6, economic_dim_7, economic_dim_8,
                                  house_charact_dim_1, house_charact_dim_2,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
                                  health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7,
