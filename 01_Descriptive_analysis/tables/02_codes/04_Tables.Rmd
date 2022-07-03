@@ -179,9 +179,9 @@ table2_2020_2021        <-      rbind(men_full_2020 %>%   dplyr::select(reg, pro
                                       women_full_2020 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp),
                                       men_full_2021 %>%   dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
                                       women_full_2021 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp)) %>% 
-                                group_by(year, group_age, sex) %>% summarise(MoMo_Excess_Deaths_N = round(sum(n) - sum(E)), 
-                                                                             COVID_19_Deaths_N = sum(n),
-                                                                             E_Deaths_N = round(sum(E))) %>% 
+                                group_by(year, group_age, sex) %>% summarise(Excess_Deaths = round(sum(n) - sum(E)), 
+                                                                             N = sum(n),
+                                                                             E = round(sum(E))) %>% 
                                                                    bind_rows(summarise(., across(where(is.numeric), sum),
                                                                                           across(where(is.character), ~"all"))) %>% 
                                                                    mutate(Age_Group = case_when(group_age ==  "40_less" ~ "0-40", 
@@ -191,11 +191,11 @@ table2_2020_2021        <-      rbind(men_full_2020 %>%   dplyr::select(reg, pro
                                                                                                 TRUE ~ group_age), 
                                                                           Period = year,
                                                                           Sex    = factor(sex, levels = c("MASCULINO", "FEMENINO", "all"), labels = c("Men", "Women", "All")),
-                                                                          Ratio_Momo_COVID_19_Deaths  = round(MoMo_Excess_Deaths_N/COVID_19_Deaths_N,2), 
-                                                                          Ratio_Momo_E_Deaths         = round(MoMo_Excess_Deaths_N/E_Deaths_N,2)) %>% 
+                                                                          Excess_Deaths_N  = round(Excess_Deaths/N,2), 
+                                                                          Excess_Deaths_E = round(Excess_Deaths/E,2)) %>% 
                                                                    ungroup %>% 
-                                                                   dplyr::select(Period, Sex, Age_Group, MoMo_Excess_Deaths_N, E_Deaths_N, COVID_19_Deaths_N,
-                                                                                 Ratio_Momo_E_Deaths, Ratio_Momo_COVID_19_Deaths) %>% 
+                                                                   dplyr::select(Period, Sex, Age_Group, Excess_Deaths, E, N,
+                                                                                 Excess_Deaths_E, Excess_Deaths_N) %>% 
                                                                    arrange(Period, Age_Group, Sex)
 ``` 
 
