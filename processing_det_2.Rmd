@@ -1,0 +1,137 @@
+---
+title: "News_variables"
+author: "Braulio Arteaga"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Packages 
+
+```{r,message=F,warning=F}
+library(tidyverse) # Tools for data manipulation 
+library(readxl)
+library(innovar)   # Peru map 
+library(INLA)      # Modelling second stage 
+library(sf)
+library(sp)
+library(spdep)
+# para instalar INLA install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) 
+```
+
+
+# 2. Directory
+
+```{r,echo=F,message=F,warning=F}
+main     <- "C:/Users/braul/Desktop/05_volunteers/Vol01_InnovaLab/03_excess_mortality/db_SINADEF/"
+input    <- paste(main, sep = "", "2. Input")
+output_1 <- paste(main, sep = "", "6. Output")
+output_2 <- "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database/1.pca/01_DB"
+```
+
+
+
+# 3. Choose the dataset 
+
+## 3.0. Innovalab
+
+```{r}
+data(Peru)
+Peru           <- st_drop_geometry(Peru) %>% mutate(ubigeo = paste(dep.code, prov.code,"00", sep = "")) %>% group_by(ubigeo, dep, prov) %>% summarise() %>% rename(reg = dep)
+```
+
+
+## 3.1. Economics
+
+```{r}
+PIBkm2_Prov      <-  read_excel(file.path(input, "PBI_subnacional.xlsx"), sheet = "PIBkm2_Prov") %>% 
+                     mutate(PIBkm2  = round(as.numeric(`2017`),2), ubigeo = sprintf("%06d", Ubigeo)) %>% 
+                     dplyr::select(ubigeo, PIBkm2) %>% 
+                     na.omit()
+    
+PIBpc_Prov       <-  read_excel(file.path(input, "PBI_subnacional.xlsx"), sheet = "PIBpc_Prov") %>% 
+                     mutate(PIBpc   = round(as.numeric(`2017`),2), ubigeo = sprintf("%06d", Ubigeo)) %>%  
+                     dplyr::select(ubigeo, PIBpc) %>% 
+                     na.omit()
+
+pob_ocupada_2017 <-  read_excel(file.path(input, "Pob_ocupada_2017.xlsx")) %>% 
+                     mutate(pob_ocupada  = round(as.numeric(pob_ocupada),2)) %>% 
+                     na.omit()
+
+pob_2017         <-  st_drop_geometry(readRDS(file.path(output, "pop_prov_G2_2017.rdata"))) %>%
+                     group_by(reg,prov) %>% 
+                     summarise(population = sum(population))
+
+```
+
+
+```{r}
+economics_2017    <-  Peru %>% left_join(pob_ocupada_2017, by = c("ubigeo" = "ubigeo"))            %>% 
+                              left_join(PIBkm2_Prov , by = c("ubigeo" = "ubigeo"))                %>%   
+                              left_join(PIBpc_Prov  , by = c("ubigeo" = "ubigeo"))                %>% 
+                              left_join(pob_2017        , by = c("reg" = "reg", "prov" = "prov")) %>% 
+                              mutate(employment = round(pob_ocupada/population, 2)) %>%   
+                              select(-c(population, pob_ocupada))
+
+colSums(is.na(economic_2017))                                               
+```
+
+# 3.3. Geográficas
+
+```{r}
+altitude             <- read.csv(file.path(input, "elevation_peru_prov_2022_15_v1.csv")) %>% mutate(altitude = round(median, 2) , ubigeo = paste(sep = "", sprintf("%04d", IDPROV) ,"00")) %>% 
+                                                                                             select(ubigeo, altitude) 
+        
+slope                <- read.csv(file.path(input, "pendiente_2022_15.csv")) %>% mutate(slope = round(median, 2) , ubigeo = paste(sep = "", sprintf("%04d", IDPROV) ,"00")) %>% 
+                                                                        select(ubigeo, slope) 
+
+
+# Se elimino  69 misssing values de 153 400 obss por cada dataset de ditancia
+
+distance_qapac       <- read_excel(file.path(input, "distancia_qapac.xlsx"))      %>%  filter(UBIGEO != "") %>%   
+                                                                                       mutate(ubigeo = paste(sep = "", substr(UBIGEO, 1,4), "00"))  %>% 
+                                                                                       group_by(ubigeo) %>% summarise(distance_qapac = round(median(distance_km2),2))
+distance_port        <- read_excel(file.path(input, "distancia_puertos.xlsx"))    %>%  filter(UBIGEO != "") %>% 
+                                                                                       mutate(ubigeo = paste(sep = "", substr(UBIGEO, 1,4), "00"))  %>% 
+                                                                                       group_by(ubigeo) %>% summarise(distance_port = round(median(distancia_km2_puerto),2))
+distance_airport     <- read_excel(file.path(input, "distancia_aeropuerto.xlsx")) %>%  filter(UBIGEO != "") %>% 
+                                                                                       mutate(ubigeo = paste(sep = "", substr(UBIGEO, 1,4), "00"))  %>% 
+                                                                                       group_by(ubigeo) %>% summarise(distance_airpot = round(median(distancia_km2_aeropuerto),2))
+
+```
+
+
+```{r}
+geo_measure  <-  Peru %>% left_join(altitude,         by = c("ubigeo" = "ubigeo")) %>% 
+                          left_join(slope,            by = c("ubigeo" = "ubigeo")) %>%  
+                          left_join(distance_qapac,   by = c("ubigeo" = "ubigeo")) %>% 
+                          left_join(distance_port,    by = c("ubigeo" = "ubigeo")) %>% 
+                          left_join(distance_airport, by = c("ubigeo" = "ubigeo"))
+
+colSums(is.na(geo_measure))
+
+```
+
+
+# 3.4. Movilidad
+
+```{r}
+# mobility_2020 <- read.table(file.path(input, 'movement-range-data-2020-03-01--2020-12-31.txt') , header = TRUE, sep = "\t") %>% filter(country == "PER") %>% mutate(year = substr(ds,1,4))
+# mobility_2022 <- read.table(file.path(input, 'movement-range-2022-05-22.txt') , header = TRUE, sep = "\t") 
+```
+
+
+# 4. Exportación
+
+```{r}
+saveRDS(economics_2017, file.path(output_2, "economics_2017.rds")) #github
+saveRDS(geo_measure,    file.path(output_2, "geo_measure.rds"))    #github
+```
+
+
+
+
+
