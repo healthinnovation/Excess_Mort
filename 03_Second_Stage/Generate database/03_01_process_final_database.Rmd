@@ -53,6 +53,8 @@ demo.dim      <- social.dets$demographic_dimension
 
 
 ```{r,message=F,warning=F,echo=F}
+
+
 db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                      %>% 
                 filter(year==2020)                                                    %>% 
                 rename(
