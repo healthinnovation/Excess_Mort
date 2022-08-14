@@ -28,7 +28,7 @@ library(xlsx)
 
 Se establece el directorio de trabajo:
 ```{r}
-main_directory <-  "C:/Users/braul/Desktop/05_personal_projects/07_Voluntariados/Vol01_InnovaLab/03_excess_mortality/db_SINADEF"
+main_directory <-  "C:/Users/braul/Desktop/05_volunteers/Vol01_InnovaLab/03_excess_mortality/db_SINADEF"
 input   <- paste(main_directory, sep="", "/2. Input") 
 output  <- paste(main_directory, sep="", "/6. Output")
 figures <- paste(output, sep="", "/figures")
@@ -63,7 +63,8 @@ men_2020_table1  <- men_full_2020    %>% group_by(reg) %>% summarise(Total_men  
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess_men1     = paste(round(Excess_men)," (",round(Low_men), " ","to",
                                                                                           " ", round(Upp_men),")", sep =""), 
-                                                                  Excess_men_perc = round((Total_men-E_men)/E_men,3)) 
+                                                                  Excess_men_perc = round((Total_men-E_men)/E_men,3), 
+                                                                  Excess_rate_men = round((Total_men-E_men)/Total_men,3) ) 
 
 
 women_2020_table1  <- women_full_2020 %>% group_by(reg) %>% summarise(Total_women  = sum(n), 
@@ -71,11 +72,12 @@ women_2020_table1  <- women_full_2020 %>% group_by(reg) %>% summarise(Total_wome
                                                                       Excess_women = round(sum(n) - sum(E)), 
                                                                       Upp_women    = round(sum(n) - sum(low)), 
                                                                       Low_women    = round(sum(n) - sum(upp))) %>% 
-                                                           bind_rows(summarise(., across(where(is.numeric), sum),
-                                                                                  across(where(is.character), ~"PERÚ"))) %>%
-                                                           mutate(Excess_women1     = paste(round(Excess_women)," (",round(Low_women), " ","to",
-                                                                                          " ", round(Upp_women),")", sep =""), 
-                                                                  Excess_women_perc = round((Total_women-E_women)/E_women,3)) 
+                                                            bind_rows(summarise(., across(where(is.numeric), sum),
+                                                                                   across(where(is.character), ~"PERÚ"))) %>%
+                                                            mutate(Excess_women1     = paste(round(Excess_women)," (",round(Low_women), " ","to",
+                                                                                           " ", round(Upp_women),")", sep =""), 
+                                                                   Excess_women_perc = round((Total_women-E_women)/E_women,3), 
+                                                                   Excess_rate_women = round((Total_women-E_women)/Total_women,3)  ) 
 
 
 both_2020_table1 <- rbind(men_full_2020   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
@@ -89,23 +91,29 @@ both_2020_table1 <- rbind(men_full_2020   %>% dplyr::select(reg, prov, year, wee
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess1     = paste(round(Excess)," (",round(Low), " ","to",
                                                                                           " ", round(Upp),")", sep =""), 
-                                                                  Excess_perc = round((Total - E_grl)/E_grl,3)) 
+                                                                  Excess_perc = round((Total - E_grl)/E_grl,3), 
+                                                                  Excess_rate = round((Total - E_grl)/Total,3) ) 
 ```
 
 Obteniendo la tabla 1 (versión 1):
 ```{r}
-table1_2020_v1    <- both_2020_table1 %>% dplyr::select(-c(Excess, Low, Upp, E_grl)) %>% 
-                     left_join(men_2020_table1   %>%  dplyr::select(-c(Excess_men,   Low_men, Upp_men, E_men)), by = c("reg" = "reg")) %>% 
-                     left_join(women_2020_table1 %>%  dplyr::select(-c(Excess_women, Low_women, Upp_women, E_women)), by = c("reg" = "reg"))
+table1_2020_v1    <- both_2020_table1 %>% dplyr::select(-c(Excess, Low, Upp)) %>% 
+                     left_join(men_2020_table1   %>%  dplyr::select(-c(Excess_men,   Low_men, Upp_men)), by = c("reg" = "reg"))     %>% 
+                     left_join(women_2020_table1 %>%  dplyr::select(-c(Excess_women, Low_women, Upp_women)), by = c("reg" = "reg")) %>%
+                     rename(Abs_excess = Excess1, Abs_excess_men = Excess_men1, Abs_excess_women = Excess_women1, Relative_excess = Excess_perc,   
+                            Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
 
 colSums(is.na(table1_2020_v1))
 ```
 
+
 Obteniendo la tabla 1 (versión 2):
 ```{r}
-table1_2020_v2    <- both_2020_table1 %>% dplyr::select(-c(Excess1, E_grl)) %>% 
-                     left_join(men_2020_table1   %>%  dplyr::select(-c(Excess_men1,   E_men))  , by = c("reg" = "reg")) %>% 
-                     left_join(women_2020_table1 %>%  dplyr::select(-c(Excess_women1, E_women)), by = c("reg" = "reg"))
+table1_2020_v2    <- both_2020_table1 %>% dplyr::select(-c(Excess1)) %>% 
+                     left_join(men_2020_table1   %>%  dplyr::select(-c(Excess_men1))  , by = c("reg" = "reg")) %>% 
+                     left_join(women_2020_table1 %>%  dplyr::select(-c(Excess_women1)), by = c("reg" = "reg")) %>% 
+                     rename(Abs_excess = Excess, Abs_excess_men = Excess_men, Abs_excess_women = Excess_women, Relative_excess = Excess_perc,   
+                            Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
 
 colSums(is.na(table1_2020_v2))
 ```
@@ -123,7 +131,8 @@ men_2021_table1  <- men_full_2021    %>% group_by(reg) %>% summarise(Total_men  
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess_men1     = paste(round(Excess_men)," (",round(Low_men), " ","to",
                                                                                           " ", round(Upp_men),")", sep =""), 
-                                                                  Excess_men_perc = round((Total_men-E_men)/E_men,3)) 
+                                                                  Excess_men_perc = round((Total_men-E_men)/E_men,3), 
+                                                                  Excess_rate_men = round((Total_men-E_men)/Total_men,3) )
 
 
 women_2021_table1  <- women_full_2021 %>% group_by(reg) %>% summarise(Total_women  = sum(n), 
@@ -135,7 +144,8 @@ women_2021_table1  <- women_full_2021 %>% group_by(reg) %>% summarise(Total_wome
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess_women1     = paste(round(Excess_women)," (",round(Low_women), " ","to",
                                                                                           " ", round(Upp_women),")", sep =""), 
-                                                                  Excess_women_perc = round((Total_women-E_women)/E_women,3)) 
+                                                                  Excess_women_perc = round((Total_women-E_women)/E_women,3),
+                                                                  Excess_rate_women = round((Total_women-E_women)/Total_women,3) ) 
 
 
 both_2021_table1 <- rbind(men_full_2021   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
@@ -149,24 +159,29 @@ both_2021_table1 <- rbind(men_full_2021   %>% dplyr::select(reg, prov, year, wee
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess1     = paste(round(Excess)," (",round(Low), " ","to",
                                                                                           " ", round(Upp),")", sep =""), 
-                                                                  Excess_perc = round((Total - E_grl)/E_grl,3)) 
+                                                                  Excess_perc = round((Total - E_grl)/E_grl,3), 
+                                                                  Excess_rate = round((Total - E_grl)/Total,3) ) 
 
 ```
 
 Obteniendo la tabla 1 (versión 1):
 ```{r}
-table1_2021_v1    <- both_2021_table1 %>% dplyr::select(-c(Excess, Low, Upp, E_grl)) %>% 
-                     left_join(men_2021_table1   %>%  dplyr::select(-c(Excess_men,   Low_men, Upp_men, E_men)), by = c("reg" = "reg")) %>% 
-                     left_join(women_2021_table1 %>%  dplyr::select(-c(Excess_women, Low_women, Upp_women, E_women)), by = c("reg" = "reg"))
-
+table1_2021_v1    <- both_2021_table1 %>% dplyr::select(-c(Excess, Low, Upp)) %>% 
+                     left_join(men_2021_table1   %>%  dplyr::select(-c(Excess_men,   Low_men, Upp_men)), by = c("reg" = "reg"))     %>% 
+                     left_join(women_2021_table1 %>%  dplyr::select(-c(Excess_women, Low_women, Upp_women)), by = c("reg" = "reg")) %>% 
+                     rename(Abs_excess = Excess1, Abs_excess_men = Excess_men1, Abs_excess_women = Excess_women1, Relative_excess = Excess_perc,   
+                            Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
+  
 colSums(is.na(table1_2021_v1))
 ```
 
 Obteniendo la tabla 1 (versión 2):
 ```{r}
-table1_2021_v2    <- both_2021_table1 %>% dplyr::select(-c(Excess1, E_grl)) %>% 
-                     left_join(men_2021_table1   %>%  dplyr::select(-c(Excess_men1,   E_men))  , by = c("reg" = "reg")) %>% 
-                     left_join(women_2021_table1 %>%  dplyr::select(-c(Excess_women1, E_women)), by = c("reg" = "reg"))
+table1_2021_v2    <- both_2021_table1 %>% dplyr::select(-c(Excess1)) %>% 
+                     left_join(men_2021_table1   %>%  dplyr::select(-c(Excess_men1))  , by = c("reg" = "reg")) %>% 
+                     left_join(women_2021_table1 %>%  dplyr::select(-c(Excess_women1)), by = c("reg" = "reg")) %>% 
+                     rename(Abs_excess = Excess, Abs_excess_men = Excess_men, Abs_excess_women = Excess_women, Relative_excess = Excess_perc,   
+                            Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
 
 colSums(is.na(table1_2021_v2))
 ```
