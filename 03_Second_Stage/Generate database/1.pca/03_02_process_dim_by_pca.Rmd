@@ -19,9 +19,9 @@ library(ggbiplot)
 #2. Directorio
 
 ```{r}
-main   <- "C:/Users/braul/Desktop/05_personal_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database/1.pca"
-input  <- paste(main, sep = "", "/01_DB")
-output <- paste(main, sep = "", "/02_output")
+main   <- "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database" 
+input  <- paste(main, sep = "", "/1.pca/01_DB")
+output <- paste(main, sep = "", "/1.pca/02_output")
 ```
 
 
@@ -66,8 +66,11 @@ social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>%
                         economic_dim_3    = as.numeric(scale.default(pr_insu)),
                         economic_dim_4    = as.numeric(scale.default(pr_pov_2018)),
                         economic_dim_5    = as.numeric(scale.default(pr_NBI))
-                        )
+                ) %>% 
+                left_join(readRDS(file.path(main,"geo_measure.rds"))    %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov") ) %>% 
+                left_join(readRDS(file.path(main,"economics_2017.rds")) %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov", "ubigeo" = "ubigeo"))
 
+                                                                    
 
 ####################################################
 # departamental 
@@ -144,6 +147,13 @@ economic.pca_8                       <- prcomp(
                                                    social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
                                         center = TRUE, scale. = TRUE)
 
+economic.pca_9                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, PIBpc, employment), center = TRUE,scale. = TRUE) 
+
+economic.pca_10                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, PIBpc), center = TRUE,scale. = TRUE) 
+
+
 
 house.characteristics.pca_1          <- prcomp(social.dets     %>% 
                                         select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
@@ -173,7 +183,19 @@ health.system.status.pca_1           <- prcomp(social.dets.dep %>%
 health.system.status.pca_2           <- prcomp(social.dets.dep %>% 
                                         select(med_x_100, enf_x_100,
                                                pr_salud_presupuesto), center = TRUE,scale. = TRUE)
-       
+
+
+geographic.pca_1                    <- prcomp(social.dets     %>% 
+                                       select(distance_qapac, distance_port, distance_airpot), center = TRUE,scale. = TRUE)
+
+geographic.pca_2                    <- prcomp(social.dets     %>% 
+                                       select(altitude, slope), center = TRUE,scale. = TRUE)
+
+geographic.pca_3                    <- prcomp(social.dets     %>% 
+                                       select(distance_port, slope), center = TRUE,scale. = TRUE)
+
+geographic.pca_4                    <- prcomp(social.dets     %>% 
+                                       select(distance_qapac, altitude), center = TRUE,scale. = TRUE)   
 
 ```
 
@@ -270,6 +292,7 @@ grid.arrange(PVEplot, cumPVE, ncol = 2)
 
 
 
+
 # 6. Selection variables
 
 ```{r,message=F,warning=F}
@@ -284,6 +307,8 @@ summary(economic.pca_2)
 summary(economic.pca_6)
 summary(economic.pca_7)
 summary(economic.pca_8)
+summary(economic.pca_9)
+summary(economic.pca_10)
 summary(house.characteristics.pca_1)
 summary(house.characteristics.pca_2)
 summary(health.pop.status.pca_1)
@@ -292,6 +317,10 @@ summary(health.pop.status.pca_6)
 summary(health.pop.status.pca_7)
 summary(health.system.status.pca_1)
 summary(health.system.status.pca_2)
+summary(geographic.pca_1)
+summary(geographic.pca_2)
+summary(geographic.pca_3)
+summary(geographic.pca_4)
 ```
 
 
@@ -355,6 +384,7 @@ dynamic.population.dim  <-  dynamic.population.pca$x %>%
 ```
 
 
+
 #8. Final database of determinants 
 
 ```{r,message=F,warning=F,echo=F}
@@ -402,6 +432,17 @@ economic_dim_8                  <-  economic.pca_8$x %>%
                                     select(PC1) %>% 
                                     dplyr::rename(economic_dim_8  = PC1)
 
+economic_dim_9                  <-  economic.pca_9$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_9  = PC1)
+
+economic_dim_10                 <-  economic.pca_10$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_10  = PC1)
+
+
 house_charact_dim_1             <-  house.characteristics.pca_1$x %>% 
                                     as.data.frame() %>% 
                                     select(PC1) %>% 
@@ -446,9 +487,30 @@ health_system_status_dim_2      <-  health.system.status.pca_2$x %>%
                                     dplyr::rename(health_system_status_dim_2 = PC1)
 
 
+geographic_dim_1                <-  geographic.pca_1$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(geographic_dim_1  = PC1)
+
+geographic_dim_2                <-  geographic.pca_2$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(geographic_dim_2  = PC1)
+
+geographic_dim_3                <-  geographic.pca_3$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(geographic_dim_3  = PC1)
+
+geographic_dim_4                <-  geographic.pca_4$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(geographic_dim_4  = PC1)
+
 
 social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, economic_dim_1, economic_dim_2, economic_dim_6,
-                                    economic_dim_7, economic_dim_8, house_charact_dim_1, house_charact_dim_2) ,
+                                    economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10, house_charact_dim_1, house_charact_dim_2, 
+                                    geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4) ,
                               cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7,    
                                     health_system_status_dim_1, health_system_status_dim_2, 
                                     social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, 
@@ -457,8 +519,9 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                    dplyr::select(dep, prov, 
                                  education_dim, demographics_dim, 
                                  dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, 
-                                 economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6, economic_dim_7, economic_dim_8,
+                                 economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6, economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10,
                                  house_charact_dim_1, house_charact_dim_2,
+                                 geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
                                  health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7,
                                  health_system_status_dim_1, health_system_status_dim_2, health_system_status_dim_3, 
