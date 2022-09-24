@@ -43,6 +43,12 @@ demo.dim      <- social.dets$demographic_dimension
                  arrange(reg,prov,year,month,prcp)
  
  
+ db.no2          <-  readRDS("no2_2020-2021.rds")          %>%
+                     ungroup()                             %>%
+                     rename(year  = anio,
+                        month = mes,
+                        no2   = NO2)             %>% 
+                     arrange(reg,prov,year,month,no2)
  
  # 2.3 geographics variable
  db.geo    <-  readRDS("geo_measure.rds") %>% 
@@ -64,30 +70,33 @@ demo.dim      <- social.dets$demographic_dimension
 ```{r,message=F,warning=F,echo=F}
 
 
-db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                      %>% 
-                filter(year==2020)                                                    %>% 
+db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                              %>% 
+                filter(year==2020)                                                             %>% 
                 rename(
                        E         = forcast
 
-                )                                                                     %>% 
+                )                                                                            %>% 
                 mutate(month = month(date))
          
   
   
   
-db.men.post  <- db.men                                                               %>% 
-                left_join(social.dets ,by          =c("reg"="dep","prov"="prov"))          %>% 
+db.men.post  <- db.men                                                                       %>% 
+                left_join(social.dets ,by          = c("reg"="dep","prov"="prov"))           %>% 
                 #climatic variables
-                left_join(db.tmx      ,by          =c(  "reg"="reg" , "prov"="prov",
+                left_join(db.tmx      ,by          = c(  "reg"="reg" , "prov"="prov",
                                                        "year"="year","month"="month"))      %>% 
-                left_join(db.prcp     ,by         = c(   "reg"="reg" , "prov"="prov",
+                left_join(db.prcp     ,by          = c(   "reg"="reg" , "prov"="prov", 
                                                        "year"="year","month"="month"))      %>% 
-             
-                left_join(db.geo      ,by         =c( "reg"="reg" , "prov"="prov"))        %>%  
-                left_join(db.eco.2    ,by         =c( "reg"="reg" , "prov"="prov"))        %>% 
+  
+                left_join(db.no2     ,by           = c(   "reg"="reg" , "prov"="prov",
+                                                       "year"="year","month"="month"))       %>%
+  
+                left_join(db.geo      ,by          = c( "reg"="reg" , "prov"="prov"))         %>%  
+                left_join(db.eco.2    ,by          = c( "reg"="reg" , "prov"="prov"))         %>% 
                 mutate( std.prcp  = scale.default(prcp),
                         std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
-                )
+                      )
 
 
 
@@ -100,27 +109,30 @@ colSums(is.na(db.men.post))
 
 ```{r,message=F,warning=F,echo=F}
 
-db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                      %>% 
-                filter(year==2021)                                                    %>% 
+db.men       <- readRDS("bd_deaths_postModel_m_3_16_3_xpop.rds")                            %>% 
+                filter(year==2021)                                                          %>% 
                 rename(
                        E         = forcast
 
-                )                                                                     %>% 
+                )                                                                           %>% 
                 mutate(month = month(date))
          
   
   
   
-db.men.post  <- db.men                                                               %>% 
-                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+db.men.post  <- db.men                                                                      %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))                 %>% 
                 #climatic variables
                 left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
+                                                "year"="year","month"="month"))             %>% 
                 left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
+                                                "year"="year","month"="month"))             %>% 
 
-                left_join(db.geo      ,by         =c( "reg"="reg" , "prov"="prov"))        %>%  
-                left_join(db.eco.2    ,by         =c( "reg"="reg" , "prov"="prov"))        %>% 
+                left_join(db.no2     ,by           = c(   "reg"="reg" , "prov"="prov",
+                                                       "year"="year","month"="month"))      %>% 
+  
+                left_join(db.geo      ,by         =c( "reg"="reg" , "prov"="prov"))         %>%  
+                left_join(db.eco.2    ,by         =c( "reg"="reg" , "prov"="prov"))         %>% 
                 mutate( std.prcp  = scale.default(prcp),
                         std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
                 )
@@ -140,23 +152,26 @@ colSums(is.na(db.men.post))
 
 ```{r,message=F,warning=F}
 db.women       <- readRDS("bd_deaths_postModel_wm_3_16_3_xpop.rds")                      %>% 
-                filter(year==2020)                                                    %>% 
+                filter(year==2020)                                                       %>% 
                 rename(
                        E         = forcast
 
-                )                                                                     %>% 
+                )                                                                        %>% 
                 mutate(month = month(date))
          
   
   
   
-db.women.post  <- db.women                                                               %>% 
-                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+db.women.post  <- db.women                                                                %>% 
+                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))               %>% 
                 #climatic variables
                 left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
+                                                "year"="year","month"="month"))           %>% 
                 left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
+                                                "year"="year","month"="month"))           %>% 
+  
+                 left_join(db.no2     ,by        = c("reg"="reg" , "prov"="prov",
+                                                       "year"="year","month"="month"))      %>% 
 
                 left_join(db.geo      ,by         =c( "reg"="reg" , "prov"="prov"))        %>%  
                 left_join(db.eco.2    ,by         =c( "reg"="reg" , "prov"="prov"))        %>% 
@@ -186,14 +201,19 @@ db.women       <- readRDS("bd_deaths_postModel_wm_3_16_3_xpop.rds")             
   
   
 db.women.post  <- db.women                                                               %>% 
-                left_join(social.dets,by     =c("reg"="dep","prov"="prov"))          %>% 
+                left_join(social.dets,by        = c("reg"="dep","prov"="prov"))          %>% 
                 #climatic variables
-                left_join(db.tmx,by          =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
-                left_join(db.prcp,by         =c( "reg"="reg" , "prov"="prov",
-                                                "year"="year","month"="month"))      %>% 
-                left_join(db.geo      ,by         =c( "reg"="reg" , "prov"="prov"))        %>%  
-                left_join(db.eco.2    ,by         =c( "reg"="reg" , "prov"="prov"))        %>% 
+                left_join(db.tmx,by             = c( "reg"="reg" , "prov"="prov",
+                                                    "year"="year","month"="month"))      %>% 
+  
+                left_join(db.prcp,by            = c( "reg"="reg" , "prov"="prov",
+                                                     "year"="year","month"="month"))      %>% 
+  
+                left_join(db.no2     ,by        = c("reg"="reg" , "prov"="prov",
+                                                       "year"="year","month"="month"))      %>% 
+  
+                left_join(db.geo      ,by       = c( "reg"="reg" , "prov"="prov"))        %>%  
+                left_join(db.eco.2    ,by       = c( "reg"="reg" , "prov"="prov"))        %>% 
 
                 mutate( std.prcp  = scale.default(prcp),
                         std.tmx   = scale.default(temp) # nodos 1era version del modelamiento no resulto relevante
@@ -204,5 +224,14 @@ db.women.post  <- db.women                                                      
 saveRDS(db.women.post,"./2.output_db/db_women_fulldim_2021.rds")
 colSums(is.na(db.men.post))  
 #db.women.2021<-readRDS("db_women_fulldim_2021.rds")
+```
+
+
+
+# Review
+
+```{r}
+db<-readRDS("./2.output_db/db_women_fulldim_2021.rds")
+
 ```
 
