@@ -26,11 +26,10 @@ library(tictoc)
 # 2. Directory
 
 ```{r,echo=F,message=F,warning=F}
-main   <- "C:/Users/braul/Desktop/05_personal_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database"
+main   <- "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database"
 input  <- paste(main, sep = "", "/2.output_db")
-output <- "C:/Users/braul/Desktop/05_personal_projects/07_Voluntariados/Vol01_InnovaLab/03_excess_mortality/db_SINADEF/5. 2da_etapa/03_output"
+output <- "C:/Users/braul/Desktop/05_volunteers/Vol01_InnovaLab/03_excess_mortality/db_SINADEF/5. 2da_etapa/03_output"
 ```
-
 
 
 # 3. Choose the dataset 
@@ -44,6 +43,8 @@ db_men_fulldim_2021    <-readRDS (file.path(input, "db_men_fulldim_2021.rds"))  
 ```{r,echo=F,message=F,warning=F}
 db_women_fulldim_2021  <-readRDS (file.path(input, "db_women_fulldim_2021.rds"))  # bd men 2020  and women 2020 ( Jesus )      | men 2021   / women 2021 (Braulio)
 ```
+
+
 
 ```{r}
 source("excess_functions.R")
@@ -73,10 +74,10 @@ Data driven
 Nota: Avisar si no converge (warning) y así ver la posibilidad de "potenciar" el modelo  
   
   
-## HOMBRES ---------------------------------------------------------------------  
+# HOMBRES ---------------------------------------------------------------------  
 ## 4.4. Dimension temporal/espacial/clima/scioeconómica
 ```{r,echo=F,message=F,warning=F}
-list_excess_m_7.n.17.0 <- c( 
+list_excess_m_7.n.1.0 <- c( 
     
           formula =  n ~      group_age_41_60                     +
                               group_age_61_80                     +
@@ -85,12 +86,13 @@ list_excess_m_7.n.17.0 <- c(
                               f(inla.group(prcp),model="rw1")     +  #rw1/rw2
                               f(inla.group(temp),model="rw1")     +  #rw1/rw2
                               f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +    #fija
-                              demographics_dim                    +    #fija
+                              education_dim                       +       
+                              demographics_dim                    +  
                               house_charact_dim_1                 +
-                              dynamic_population_dim_1            +
+                              dynamic_population_dim_3            +
                               economic_dim_6                      +
-                              health_population_status_dim_5      ,
+                              geographic_dim_1                    +
+                              health_population_status_dim_5        , 
 
           formula =  n ~      group_age_41_60                     +
                               group_age_61_80                     +
@@ -99,50 +101,68 @@ list_excess_m_7.n.17.0 <- c(
                               f(inla.group(prcp),model="rw1")     +  #rw1/rw2
                               f(inla.group(temp),model="rw1")     +  #rw1/rw2
                               f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +    #fija
-                              demographics_dim                    +    #fija
-                              house_charact_dim_2                 +
-                              dynamic_population_dim_1            +
+                              education_dim                       +       
+                              demographics_dim                    +  
+                              house_charact_dim_1                 +
+                              dynamic_population_dim_3            +
                               economic_dim_6                      +
-                              health_population_status_dim_5      
+                              geographic_dim_1                    +
+                              health_population_status_dim_6        ,
+ 
+          formula =  n ~      group_age_41_60                     +
+                              group_age_61_80                     +
+                              group_age_81_more                   +
+                              f(week,model="rw1")                 +  #rw1/rw2
+                              f(inla.group(prcp),model="rw1")     +  #rw1/rw2
+                              f(inla.group(temp),model="rw1")     +  #rw1/rw2
+                              f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
+                              education_dim                       +       
+                              demographics_dim                    +  
+                              house_charact_dim_1                 +
+                              dynamic_population_dim_3            +
+                              economic_dim_6                      +
+                              geographic_dim_1                    +
+                              health_population_status_dim_7      
           
-             )
+              )
 
-names(list_excess_m_7.n.17.0) <- list_excess_m_7.n.17.0
+names(list_excess_m_7.n.1.0) <- list_excess_m_7.n.1.0
 
 
 
 # 4.1. Modelado
 tic()
 
-test_excess_7.n.17.m <- list_excess_m_7.n.17.0 %>% 
-                             purrr::map(~inla.batch.predict.bru.safe(formula = .,
+test_excess_7.n.1.m <- list_excess_m_7.n.1.0 %>% 
+                             purrr::map(~inla.batch.predict.bru.full.safe(formula = .,
                                                              dat1 = db_men_fulldim_2021)) # men women
 toc()
 
 
 # 4.2. Exportación
 tic()
-saveRDS(test_excess_7.n.17.m, file.path(output,"test_excess_6_n_17_0_excess_m_2021.rds")) #m for men / wm for women
+saveRDS(test_excess_7.n.1.m, file.path(output,"test_excess_7_n_1_0_excess_m_2021.rds")) #m for men / wm for women
 toc()
 ```
+
 ## 4.4.1 Análisis
 ```{r}
-summary(test_excess_7.n.17.m[[2]]) #dic (menor valor es el mejor modelo en términos absolutos)
-summary(test_excess_7.n.17.m[[2]])$dic$dic
+summary(test_excess_7.n.1.m[[3]]) #dic (menor valor es el mejor modelo en términos absolutos)
+summary(test_excess_7.n.1.m[[3]])$dic$dic
 ```
 
 
+`
 
 
 
 
 
 
-## MUJERES ---------------------------------------------------------------------  
+# MUJERES ---------------------------------------------------------------------  
 ## 4.4. Dimension temporal/espacial/clima/scioeconómica
 ```{r,echo=F,message=F,warning=F}
-list_excess_w_7.n.8.0 <- c( 
+list_excess_w_7.n.1.0 <- c( 
           formula =  n ~      group_age_41_60                     +
                               group_age_61_80                     +
                               group_age_81_more                   +
@@ -150,52 +170,43 @@ list_excess_w_7.n.8.0 <- c(
                               f(inla.group(prcp),model="rw1")     +  #rw1/rw2
                               f(inla.group(temp),model="rw1")     +  #rw1/rw2
                               f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +    #fija    
-                              house_charact_dim_1                 +
-                              dynamic_population_dim_1            +
+                              education_dim                       +       
+                              demographics_dim                    +  
+                              house_charact_dim_2                 +
+                              dynamic_population_dim_2            +
                               economic_dim_6                      +
-                              health_population_status_dim_5     , 
-          
-          formula =  n ~      group_age_41_60                     +
-                              group_age_61_80                     +
-                              group_age_81_more                   +
-                              f(week,model="rw1")                 +  #rw1/rw2
-                              f(inla.group(prcp),model="rw1")     +  #rw1/rw2
-                              f(inla.group(temp),model="rw1")     +  #rw1/rw2
-                              f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +    #fija    
-                              house_charact_dim_1                 +
-                              dynamic_population_dim_1            +
-                              economic_dim_6                      +
-                              health_system_status_dim_5           
-        
+                              geographic_dim_1                    +
+                              health_system_status_dim_4                          
           )
 
 
 
-names(list_excess_w_7.n.8.0) <- list_excess_w_7.n.8.0
+names(list_excess_w_7.n.1.0) <- list_excess_w_7.n.1.0
 
 
 # 4.1. Modelado
 tic()
 
-test_excess_7.n.8.w <- list_excess_w_7.n.8.0 %>% 
-                             purrr::map(~inla.batch.predict.bru.safe(formula = .,
+test_excess_7.n.1.w <- list_excess_w_7.n.1.0 %>% 
+                             purrr::map(~inla.batch.predict.bru.full.safe(formula = .,
                                                              dat1 = db_women_fulldim_2021)) # men women
 toc()
 
 
 # 4.2. Exportación
 tic()
-saveRDS(test_excess_7.n.8.w, file.path(output,"test_excess_5_n_8_0_excess_w_2021.rds")) #m for men / wm for women
+saveRDS(test_excess_7.n.1.w, file.path(output,"best_test_excess_7_n_1_0_excess_w_2021_full.rds")) #m for men / wm for women
 toc()
 ```
 
 
+
+
+
 ## 4.4.1 Análisis
 ```{r}
-summary(test_excess_7.n.8.w[[2]]) #dic (menor valor es el mejor modelo en términos absolutos)
-summary(test_excess_7.n.8.w[[2]])$dic$dic
+summary(test_excess_7.n.1.w[[1]]) #dic (menor valor es el mejor modelo en términos absolutos)
+summary(test_excess_7.n.1.w[[1]])$dic$dic
 ```
 
 

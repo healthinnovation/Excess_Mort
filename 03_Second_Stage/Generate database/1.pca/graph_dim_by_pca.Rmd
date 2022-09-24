@@ -1,0 +1,322 @@
+---
+title: "Graphics of Dimensions by PCA"
+author: "Et al"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::readthedown:
+    number_sections: no
+    code_folding: show      
+    highlight: kate
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = T, echo = T, 
+                      error = F, warning = F, message = F)
+```
+
+
+# 1. Librerías
+
+```{r,message=F,warning=F,eval=T}
+library(tidyverse)
+library(gridExtra)
+library(ggbiplot)
+#library("devtools")
+#install_github("kassambara/factoextra")
+library(factoextra)
+```
+
+
+
+# 2. Directorio
+
+```{r}
+main   <- "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort/03_Second_Stage/Generate database" 
+input  <- paste(main, sep = "", "/1.pca/01_DB")
+output <- paste(main, sep = "", "/1.pca/02_output")
+```
+
+
+# 3. Importación
+
+```{r}
+# Provincial
+social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>% 
+                dplyr::rename(pr_insu       = INEI_prop_aseg_2017,                 # insurance
+                       pr_edu_inf_25       = INEI_prop_niv.insInf_25yrs,
+                       pr_pov_2018         = prop_pobreza_2018,                    # poverty
+                       pr_wout_water       = INEI_prop_NoAbsAguVvn_int_2017,       # prp de pob wihout  water
+                       pr_urban_2017       = INEI_prop_urbano_2017,                #  prp of urban pop 
+                       pr_one_hab          = Prop_1_hab,                           # prp de casas 1hab
+                       pr_with_elec        = INEI_Prop_NoAlumbradoElectri_2017,    # prp de pob wihout electricity
+                       pr_wrk_oth_distr    = INEI_prop_cntr_trb_otroDistrito_2017, # prp of pop working in other district 
+                       pr_liv_oth_distr    = INEI_prop_NoViviaDistr5_2017,         # mudados
+                       pr_edu_oth_distr    = INEI_prop_Inst.Edu_EnOtroDistrito_2017,
+                       pr_NBI              = NBI_Prop,                             # prp con al menos min 1 necesidad insatisfecha
+                       min_tercer          = `Tertiary HCF`,
+                       min_second          = `Secondary HCF`,
+                       min_prim            = `Primary HCF`,
+                       pr_no_bl_mz         = INEI_prop_autoident_NoMstBlc,
+                       pr_no_inter         = INEI_prop_NoInternet_2017,
+                       pr_no_tele          = INEI_prop_NoTelevisor_2017,
+                       pr_no_cel           = INEI_prop_NoCelular_2017,
+                       pr_si_buscajob      = INEI_prop_si_buscando_trabajo,
+                       pr_no_trabajo_pago  = INEI_prop_no_trabajo_pago,
+                       pr_no_casa_titu     = INEI_prop_Notenenciaviv_2017,
+                       pr_no_vehiculo      = INEI_prop_novehiculo_2017
+                       
+                # Education and demographic dimension
+                # Dimensión económica con variables estandarizadas
+                ) %>% 
+                mutate( education_dim     = as.numeric(scale.default(pr_edu_inf_25)),
+                        demographics_dim  = as.numeric(scale.default(pr_no_bl_mz)),
+                        economic_dim_3    = as.numeric(scale.default(pr_insu)),
+                        economic_dim_4    = as.numeric(scale.default(pr_pov_2018)),
+                        economic_dim_5    = as.numeric(scale.default(pr_NBI))
+                ) %>% 
+                left_join(readRDS(file.path(main,"geo_measure.rds"))    %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov") ) %>% 
+                left_join(readRDS(file.path(main,"economics_2017.rds")) %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov", "ubigeo" = "ubigeo"))
+
+                                                                    
+
+# Departamental 
+social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))               %>% 
+                   select(dep,Endes_Prop_Diab,Endes_Prop_Fuma_Diario,
+                        Endes_Prop_HA,ENDES_prop_Obes,Endes_Prop_Tos,
+                        Enfermeras_10khab,Farmaceuticos_10khab,
+                        TecMedicos_10khab,
+                        Medicos_10khab,Presupuesto_salud,Presupuesto_publico, 
+                        Pob_T_Int, Prop_vuelos_entrantes, PBI_per_capita)     %>% 
+            dplyr::rename(pr_diab               = Endes_Prop_Diab,
+                          pr_smoke              = Endes_Prop_Fuma_Diario,
+                          pr_hyper_tension      = Endes_Prop_HA,
+                          pr_obes               = ENDES_prop_Obes,
+                          pr_tos                = Endes_Prop_Tos,
+                          med_x_100             = Medicos_10khab)                   %>% 
+                   mutate(med_x_100             = med_x_100/10,  
+                          enf_x_100             = Enfermeras_10khab/10,
+                          far_x_100             = Farmaceuticos_10khab/10,
+                        tecmed_x_100          = TecMedicos_10khab/10,
+                        pr_salud_presupuesto  = Presupuesto_salud/Presupuesto_publico,
+                        
+                        #Dimensión salud con variables estandarizadas
+                        
+                        health_population_status_dim_3 = as.numeric(scale.default(pr_diab)),
+                        health_population_status_dim_4 = as.numeric(scale.default(pr_obes)),  
+                        health_population_status_dim_5 = as.numeric(scale.default(pr_tos)),
+                        health_system_status_dim_3     = as.numeric(scale.default(med_x_100)),
+                        health_system_status_dim_4     = as.numeric(scale.default(enf_x_100)),
+                        health_system_status_dim_5     = as.numeric(scale.default(far_x_100))
+                        )
+
+```
+
+
+
+# 4. Principal components analysis
+
+```{r}
+# variables , componentes , dimensiones 
+
+dynamic.population.pca_1             <- prcomp(social.dets     %>%
+                                        select(pr_edu_oth_distr,pr_wrk_oth_distr,
+                                        pr_liv_oth_distr), center = TRUE,scale. = TRUE)
+
+dynamic.population.pca_2             <- prcomp(social.dets     %>% 
+                                        select(pr_edu_oth_distr, pr_wrk_oth_distr,
+                                        pr_no_vehiculo), center = TRUE,scale. = TRUE) 
+
+dynamic.population.pca_3             <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_edu_oth_distr, pr_wrk_oth_distr),
+                                                   social.dets.dep %>% select(dep, Prop_vuelos_entrantes), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_1                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018), center = TRUE,scale. = TRUE) 
+
+economic.pca_2                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, pr_no_trabajo_pago), center = TRUE,scale. = TRUE) 
+
+economic.pca_6                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, pr_NBI), center = TRUE,scale. = TRUE) 
+
+economic.pca_7                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_insu, pr_pov_2018),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_8                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_pov_2018),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_9                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, PIBpc, employment), center = TRUE,scale. = TRUE) 
+
+economic.pca_10                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, PIBpc), center = TRUE,scale. = TRUE) 
+
+
+
+house.characteristics.pca_1          <- prcomp(social.dets     %>% 
+                                        select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
+                                               INEI_prop_Nopiso_cemento_loseta), center = TRUE,scale. = TRUE)
+
+house.characteristics.pca_2          <- prcomp(social.dets     %>% 
+                                        select(INEI_prop_Nopared_ladrillo_cemento, INEI_prop_No_techo_concreto,   
+                                               INEI_prop_Nopiso_cemento_loseta, pr_urban_2017), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_1              <- prcomp(social.dets.dep %>% 
+                                        select(pr_diab, pr_obes, pr_tos), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_2              <- prcomp(social.dets.dep %>% 
+                                        select(pr_diab, pr_obes, pr_tos, pr_smoke), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_6              <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos, pr_smoke), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_7              <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos, pr_obes), center = TRUE,scale. = TRUE)
+
+
+health.system.status.pca_1           <- prcomp(social.dets.dep %>% 
+                                        select(med_x_100, enf_x_100,
+                                               far_x_100), center = TRUE,scale. = TRUE)
+
+health.system.status.pca_2           <- prcomp(social.dets.dep %>% 
+                                        select(med_x_100, enf_x_100,
+                                               pr_salud_presupuesto), center = TRUE,scale. = TRUE)
+
+
+geographic.pca_1                    <- prcomp(social.dets     %>% 
+                                       select(distance_qapac, distance_port, distance_airpot), center = TRUE,scale. = TRUE)
+
+geographic.pca_2                    <- prcomp(social.dets     %>% 
+                                       select(altitude, slope), center = TRUE,scale. = TRUE)
+
+geographic.pca_3                    <- prcomp(social.dets     %>% 
+                                       select(distance_port, slope), center = TRUE,scale. = TRUE)
+
+geographic.pca_4                    <- prcomp(social.dets     %>% 
+                                       select(distance_qapac, altitude), center = TRUE,scale. = TRUE)   
+
+```
+
+
+
+# 5. Gráficas
+
+## 5.1. Dimension económica
+
+### Versión 1
+```{r}
+fviz_pca_var(economic.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 2
+```{r}
+fviz_pca_var(economic.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 6
+```{r}
+fviz_pca_var(economic.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+### Versión 7
+```{r}
+fviz_pca_var(economic.pca_7, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 8
+```{r}
+fviz_pca_var(economic.pca_8, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 9
+```{r}
+fviz_pca_var(economic.pca_9, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+### Versión 10
+```{r}
+fviz_pca_var(economic.pca_10, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+## 5.2. Dimensión salud (health population status)
+
+### Versión 1
+```{r}
+fviz_pca_var(health.pop.status.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 2
+```{r}
+fviz_pca_var(health.pop.status.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 6
+```{r}
+fviz_pca_var(health.pop.status.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 7
+```{r}
+fviz_pca_var(health.pop.status.pca_7, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+## 5.3. Dimensión salud (health system status)
+
+### Versión 1
+```{r}
+fviz_pca_var(health.system.status.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 2
+```{r}
+fviz_pca_var(health.system.status.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```

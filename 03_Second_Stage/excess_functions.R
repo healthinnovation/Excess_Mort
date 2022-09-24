@@ -90,7 +90,21 @@ inla.batch.predict.bru<-function(formula, dat1 = datos.proc) {
                 control.inla=list(strategy="adaptive"),
                 control.compute=list(config=T, dic=T, cpo=T, waic=T,
                                      #se requiere config = TRUE 
-                                     return.marginals = FALSE),
+                                     return.marginals = FALSE
+                                     #return.marginals.predictor = TRUE
+                                     ),
+                control.fixed = list(correlation.matrix=T),
+                control.predictor=list(link=1,compute=TRUE)
+  )
+  return(result)
+}
+
+inla.batch.predict.bru.full<-function(formula, dat1 = datos.proc) {
+  result = inla(formula, data=dat1, family="nbinomial", verbose = F, offset=log(E), 
+                control.inla=list(strategy="adaptive"),
+                control.compute=list(config=T, dic=T, cpo=T, waic=T,
+                                     #se requiere config = TRUE 
+                                     return.marginals.predictor = TRUE),
                 control.fixed = list(correlation.matrix=T),
                 control.predictor=list(link=1,compute=TRUE)
   )
@@ -100,7 +114,7 @@ inla.batch.predict.bru<-function(formula, dat1 = datos.proc) {
 inla.batch.predict.safe <- possibly(inla.batch.predict, otherwise = NA_real_)
 
 inla.batch.predict.bru.safe <- possibly(inla.batch.predict.bru, otherwise = NA_real_)
-
+inla.batch.predict.bru.full.safe <- possibly(inla.batch.predict.bru.full, otherwise = NA_real_)
 inla.batch.det.safe <- possibly(inla.batch.det, otherwise = NA_real_)
 
 
