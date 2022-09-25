@@ -208,6 +208,7 @@ geographic.pca_4                    <- prcomp(social.dets     %>%
 # 5. Gráficas
 
 ## 5.1. Dimension económica
+Las versiones 3, 4 y 5 son estandarizaciones de variables
 
 ### Versión 1
 ```{r}
@@ -270,6 +271,7 @@ fviz_pca_var(economic.pca_10,
 
 
 ## 5.2. Dimensión salud (health population status)
+Las versiones 3, 4 y 5 son estandarizaciones de variables
 
 ### Versión 1
 ```{r}
@@ -304,7 +306,7 @@ fviz_pca_var(health.pop.status.pca_7,
 ```
 
 ## 5.3. Dimensión salud (health system status)
-
+Las versiones 3, 4 y 5 son estandarizaciones de variables
 ### Versión 1
 ```{r}
 fviz_pca_var(health.system.status.pca_1, 
@@ -320,3 +322,268 @@ fviz_pca_var(health.system.status.pca_2,
              repel = TRUE # Do not overlap text
              )
 ```
+
+
+
+## 5.4. Dimensión características del hogar
+
+### Versión 1
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+### Versión 2
+```{r}
+fviz_pca_var(house.characteristics.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+## 5.5. Dimensión dinámica poblacional
+
+### Versión 1
+```{r}
+fviz_pca_var(dynamic.population.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+### Versión 2
+```{r}
+fviz_pca_var(dynamic.population.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+### Versión 3
+```{r}
+fviz_pca_var(dynamic.population.pca_3, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+## 5.6. Dimensión geográfica
+
+### Versión 1
+```{r}
+fviz_pca_var(geographic.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+### Versión 2
+```{r}
+fviz_pca_var(geographic.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+### Versión 3
+```{r}
+fviz_pca_var(geographic.pca_3, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+### Versión 4
+```{r}
+fviz_pca_var(geographic.pca_4, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+
+
+## 5.7. Versiones de los mejores modelos (sin dimensión geográfica)
+
+### Año 2020 (Mujeres)
+Las versiones de la dimensión económica, demográfica, educación y salud son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(dynamic.population.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+### Año 2021 (Mujeres)
+Las versiones de la dimensión demográfica, educación y salud son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(economic.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(dynamic.population.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+### Año 2020 (Hombres)
+Las versiones de la dimensión económica, demográfica, educación y salud son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(dynamic.population.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+### Año 2021 (Hombres)
+Las versiones de la dimensión demográfica y educación son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(economic.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(dynamic.population.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(health.pop.status.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+
+
+
+
+
+
+
+
+## 5.8. Versiones de los mejores modelos (con dimensión geográfica)
+
+### Año 2021 (Mujeres)
+Las versiones de la dimensión demográfica, educación y salud son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(geographic.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(economic.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(dynamic.population.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(house.characteristics.pca_2, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
+### Año 2021 (Hombres)
+Las versiones de la dimensión demográfica y educación son estandarizaciones de variables
+
+```{r}
+fviz_pca_var(geographic.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(economic.pca_6, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(dynamic.population.pca_3, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(house.characteristics.pca_1, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+```{r}
+fviz_pca_var(health.pop.status.pca_7, 
+             col.var = 'contrib',
+             repel = TRUE # Do not overlap text
+             )
+```
+
+
