@@ -9,7 +9,8 @@ output: html_document
 ## Men
 
 ```{r,echo=F,message=F,warning=F}
-# ehck input 
+# Extra
+# check input 
 
 db         <- readRDS("./1.pca/01_DB/social_dets_dep.rds")
 db.prov    <- readRDS("./1.pca/01_DB/vulnr_df_prov.rds")
