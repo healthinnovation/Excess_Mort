@@ -1,0 +1,151 @@
+---
+title: "Tabla de validación EM"
+author: "Et al"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::downcute:
+    number_sections: no
+    code_folding: hide      
+    highlight: kate
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = T, echo = T, 
+                      error = F, warning = F, message = F)
+```
+
+**OBJETIVO**: Validar nuestros resultados calculados de Mortalidad (Observada, Esperada y Exceso) en relación a las cifras/estimaciones oficiales del MINSA   
+
+---
+
+## 1. Librerías
+
+```{r}
+library(tidyverse)
+library(skimr)
+library(xlsx)
+library(reactable)
+```
+
+
+## 2. Directorio de trabajo
+
+```{r}
+main_directory <-  "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort"
+
+input   <- paste(main_directory, sep="", "/03_Second_Stage/Generate database/2.output_db") 
+output  <- paste(main_directory, sep="", "/6. Output")
+figures <- paste(output, sep="", "/figures")
+tables  <- paste(main_directory, sep="", "/01_Descriptive_analysis/tables/02_output")
+moran   <- paste(output, sep="", "/test_moran_global")
+```
+
+
+## 3. Importación
+
+```{r}
+men_full_2020   <- readRDS(file.path(input, "db_men_fulldim_2020.rds"))
+women_full_2020 <- readRDS(file.path(input, "db_women_fulldim_2020.rds"))
+men_full_2021   <- readRDS(file.path(input, "db_men_fulldim_2021.rds"))
+women_full_2021 <- readRDS(file.path(input, "db_women_fulldim_2021.rds"))
+
+EM_MINSA <-  read.xlsx(file.path(main_directory, "01_Descriptive_analysis/tables/EM_MINSA_2020_2022.xlsx"), sheetName = "Hoja1") 
+```
+
+
+## 4. Preprocesamiento
+
+```{r}
+EM_MINSA <- EM_MINSA %>%  filter(between(Inicio.de.período, as.Date("2020-03-01"), as.Date("2021-02-27"))) %>% 
+                          mutate(Departamento = replace(Departamento, Departamento == "LIMA METROPOLITANA", "LIMA")) %>% 
+                          group_by(Departamento) %>% 
+                          summarise (Observado_MINSA  = sum(Observado), 
+                                     Esperado_MINSA   = round(sum(Esperado)), 
+                                     Exceso_MINSA     = round(sum(Observado) - sum(Esperado))) %>% 
+                          bind_rows(summarise(., across(where(is.numeric), sum),
+                                                 across(where(is.character), ~"PERÚ"))) 
+```
+
+
+
+```{r}
+men_full_2020_21 <- rbind(men_full_2020   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp, date), 
+                          men_full_2021    %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp, date)) %>% 
+                    filter(between(date, as.Date("2020-03-02"), as.Date("2021-02-22")))
+
+women_full_2020_21 <- rbind(women_full_2020   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp, date), 
+                            women_full_2021   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp, date)) %>% 
+                      filter(between(date, as.Date("2020-03-02"), as.Date("2021-02-22")))
+
+both_2020_21        <- rbind(men_full_2020_21   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E), 
+                             women_full_2020_21 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E))  %>%  group_by(reg) %>%  
+                                                           summarise (Observado  = sum(n), 
+                                                                      Esperado   = round(sum(E)), 
+                                                                      Exceso     = round(sum(n) - sum(E)))  %>% 
+                                                           rename(Departamento = reg) %>% 
+                                                           bind_rows(summarise(., across(where(is.numeric), sum),
+                                                                                  across(where(is.character), ~"PERÚ"))) 
+
+```
+
+
+
+
+## 4. Tabla de validación  
+
+En relación a las variables:  
+
+-  Las **variables con el sufijo `_MINSA`** se obtuvieron de [CDC Perú - Minsa](https://www.dge.gob.pe/portalnuevo/informacion-publica/reporte-de-exceso-de-mortalidad/)  
+-  Las **variables sin el sufijo `_MINSA`** son nuestros resultados calculados y estimados  
+-  Las **variables con el sufijo `_Abs`** indican la variación absoluta de nuestros resultados con respecto al MINSA **(nuestro - MINSA)**  
+-  Las **variables con el sufijo `_Relativa`** indican la variación relativa de nuestros resultados con respecto al MINSA **(nuestro-MINSA / nuestro)**  
+
+En relación a las variaciones:  
+
+- **Observado**:  
+  - V.Absoluta: Min **25** (Madre de Dios) y Max 9280 (Callao) /  **1819** (Lima)  
+  - V.Relativa: Min **2%** (Ica) y Max 80% (Callao) / **5%** (Apurímac)  
+- **Esperado**:  
+  - V.Absoluta: Min **-1083** (Lima) y Max 3198 (Callao) /  **479** (Cusco)  
+  - V.Relativa: Min **-11%** (Piura) y Max 70% (Callao) / **13%** (Pasco)  
+- **Exceso**:  
+  - V.Absoluta: Min **-264** (Lambayeque) y Max 6082 (Callao) /  **2902** (Lima)  
+  - V.Relativa: Min **-9%** (Cusco) y Max 87% (Callao) / **12%** (Piura)  
+  
+Posibles explicaciones:  
+
+-  La data del CALLAO de [CDC Perú - Minsa](https://www.dge.gob.pe/portalnuevo/informacion-publica/reporte-de-exceso-de-mortalidad/) no incluye las semanas completas  
+-  El traslape de fechas: Nuestra data considera el rango de fechas "2020-03-02" a "2021-02-22"   
+
+```{r}
+table_2020_21_validacion    <- both_2020_21  %>%
+                               left_join(EM_MINSA  , by = c("Departamento" = "Departamento"))  %>% 
+                               mutate(Observado_Abs = Observado - Observado_MINSA , Observado_Relativa = round((Observado - Observado_MINSA)/Observado,2), 
+                                      Esperado_Abs  = Esperado  - Esperado_MINSA  , Esperado_Relativa  = round((Esperado  - Esperado_MINSA) /Esperado, 2),
+                                      Exceso_Abs    = Exceso - Exceso_MINSA       , Exceso_Relativa    = round((Exceso - Exceso_MINSA)/Exceso,2)) %>% 
+                               dplyr::select(Departamento, Observado, Observado_MINSA, Observado_Abs, Observado_Relativa, 
+                                                           Esperado,  Esperado_MINSA,  Esperado_Abs,  Esperado_Relativa,
+                                                           Exceso, Exceso_MINSA, Exceso_Abs, Exceso_Relativa)
+
+reactable(table_2020_21_validacion, 
+          searchable = TRUE, showPageSizeOptions = TRUE,
+          pageSizeOptions = c(13,9,7), defaultPageSize = 13, 
+          columns = list(
+          Departamento       = colDef(width = 150, align = "center"),
+          Observado          = colDef(width = 150, align = "center"),
+          Observado_MINSA    = colDef(width = 200, align = "center"),
+          Observado_Abs      = colDef(width = 150, align = "center"),
+          Observado_Relativa = colDef(width = 200, align = "center"),
+          Esperado           = colDef(width = 150, align = "center"),
+          Esperado_MINSA     = colDef(width = 150, align = "center"),
+          Esperado_Abs       = colDef(width = 150, align = "center"),
+          Esperado_Relativa  = colDef(width = 200, align = "center"),
+          Exceso             = colDef(width = 150, align = "center"),
+          Exceso_MINSA       = colDef(width = 150, align = "center"),
+          Exceso_Abs         = colDef(width = 150, align = "center"),
+          Exceso_Relativa    = colDef(width = 150, align = "center")))
+```
+
+
+

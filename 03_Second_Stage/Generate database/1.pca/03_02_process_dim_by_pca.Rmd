@@ -27,7 +27,6 @@ output <- paste(main, sep = "", "/1.pca/02_output")
 
 #3. Importación
 
-
 ```{r,message=F,warning=F,eval=F}
 
 source("excess_functions.R")
@@ -80,7 +79,7 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         Enfermeras_10khab,Farmaceuticos_10khab,
                         TecMedicos_10khab,
                         Medicos_10khab,Presupuesto_salud,Presupuesto_publico, 
-                        Pob_T_Int, Prop_vuelos_entrantes, PBI_per_capita)     %>% 
+                        Pob_T_Int, Prop_vuelos_entrantes, PBI_per_capita, Prop_neu, MMR, Muertes_materna, mortalidad_prop_cancer )     %>% 
             dplyr::rename(pr_diab               = Endes_Prop_Diab,
                           pr_smoke              = Endes_Prop_Fuma_Diario,
                           pr_hyper_tension      = Endes_Prop_HA,
@@ -95,18 +94,23 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         
                         #Dimensión salud con variables estandarizadas
                         
-                        health_population_status_dim_3 = as.numeric(scale.default(pr_diab)),
-                        health_population_status_dim_4 = as.numeric(scale.default(pr_obes)),  
-                        health_population_status_dim_5 = as.numeric(scale.default(pr_tos)),
-                        health_system_status_dim_3     = as.numeric(scale.default(med_x_100)),
-                        health_system_status_dim_4     = as.numeric(scale.default(enf_x_100)),
-                        health_system_status_dim_5     = as.numeric(scale.default(far_x_100))
+                        health_population_status_dim_3  = as.numeric(scale.default(pr_diab)),
+                        health_population_status_dim_4  = as.numeric(scale.default(pr_obes)),  
+                        health_population_status_dim_5  = as.numeric(scale.default(pr_tos)),
+                        health_population_status_dim_10 = as.numeric(scale.default(pr_hyper_tension)),
+                        health_population_status_dim_11 = as.numeric(scale.default(Prop_neu)),
+                        health_population_status_dim_12 = as.numeric(scale.default(MMR)),
+                        health_population_status_dim_13 = as.numeric(scale.default(Muertes_materna)),
+                        health_population_status_dim_14 = as.numeric(scale.default(mortalidad_prop_cancer)),
+                        health_system_status_dim_3      = as.numeric(scale.default(med_x_100)),
+                        health_system_status_dim_4      = as.numeric(scale.default(enf_x_100)),
+                        health_system_status_dim_5      = as.numeric(scale.default(far_x_100)),
+                        health_system_status_dim_6      = as.numeric(scale.default(pr_salud_presupuesto))
                         )
 
 ####################################################
 
 ```
-
 
 
 # 4. Principal components analysis
@@ -174,6 +178,12 @@ health.pop.status.pca_6              <- prcomp(social.dets.dep %>%
 
 health.pop.status.pca_7              <- prcomp(social.dets.dep %>% 
                                         select(pr_tos, pr_obes), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_8              <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos, pr_diab), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_9              <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos, pr_hyper_tension), center = TRUE,scale. = TRUE)
 
 
 health.system.status.pca_1           <- prcomp(social.dets.dep %>% 
@@ -315,6 +325,8 @@ summary(health.pop.status.pca_1)
 summary(health.pop.status.pca_2)
 summary(health.pop.status.pca_6)
 summary(health.pop.status.pca_7)
+summary(health.pop.status.pca_8)
+summary(health.pop.status.pca_9)
 summary(health.system.status.pca_1)
 summary(health.system.status.pca_2)
 summary(geographic.pca_1)
@@ -475,6 +487,17 @@ health_population_status_dim_7  <-  health.pop.status.pca_7$x %>%
                                     select(PC1)  %>% 
                                     dplyr::rename(health_population_status_dim_7 = PC1)
 
+health_population_status_dim_8  <-  health.pop.status.pca_8$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_8 = PC1)
+
+health_population_status_dim_9  <-  health.pop.status.pca_9$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_9 = PC1)
+
+
 
 health_system_status_dim_1      <-  health.system.status.pca_1$x %>% 
                                     as.data.frame() %>% 
@@ -511,10 +534,11 @@ geographic_dim_4                <-  geographic.pca_4$x %>%
 social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, economic_dim_1, economic_dim_2, economic_dim_6,
                                     economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10, house_charact_dim_1, house_charact_dim_2, 
                                     geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4) ,
-                              cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7,    
+                              cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7, 
+                                    health_population_status_dim_8, health_population_status_dim_9,     
                                     health_system_status_dim_1, health_system_status_dim_2, 
-                                    social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, 
-                                                                       health_system_status_dim_3, health_system_status_dim_4, health_system_status_dim_5) ) ,
+                                    social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, health_population_status_dim_10,
+                                                                       health_system_status_dim_3, health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6) ) ,
                               by = c("dep" = "dep") ) %>% 
                    dplyr::select(dep, prov, 
                                  education_dim, demographics_dim, 
@@ -524,8 +548,9 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                  geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
                                  health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7,
+                                 health_population_status_dim_8, health_population_status_dim_9, health_population_status_dim_10,
                                  health_system_status_dim_1, health_system_status_dim_2, health_system_status_dim_3, 
-                                 health_system_status_dim_4, health_system_status_dim_5)
+                                 health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6)
                             
 
 saveRDS(social.dets.pca, file.path(output, "social_dets_pca.rds"))
