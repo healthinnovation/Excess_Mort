@@ -186,6 +186,28 @@ health.pop.status.pca_9              <- prcomp(social.dets.dep %>%
                                         select(pr_tos, pr_hyper_tension), center = TRUE,scale. = TRUE)
 
 
+health.pop.status.pca_15              <- prcomp(social.dets.dep %>% 
+                                        select(pr_obes, Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_16             <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos,  Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_17              <- prcomp(social.dets.dep %>% 
+                                        select(pr_diab, Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_18              <- prcomp(social.dets.dep %>% 
+                                        select(pr_obes, pr_tos, Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_19              <- prcomp(social.dets.dep %>% 
+                                        select(pr_obes, pr_diab, Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_20              <- prcomp(social.dets.dep %>% 
+                                        select(pr_tos, pr_diab, Prop_neu), center = TRUE,scale. = TRUE)
+
+health.pop.status.pca_21              <- prcomp(social.dets.dep %>% 
+                                        select(pr_obes, pr_tos, pr_diab, Prop_neu), center = TRUE,scale. = TRUE)
+
+
 health.system.status.pca_1           <- prcomp(social.dets.dep %>% 
                                         select(med_x_100, enf_x_100,
                                                far_x_100), center = TRUE,scale. = TRUE)
@@ -327,6 +349,15 @@ summary(health.pop.status.pca_6)
 summary(health.pop.status.pca_7)
 summary(health.pop.status.pca_8)
 summary(health.pop.status.pca_9)
+
+summary(health.pop.status.pca_15)
+summary(health.pop.status.pca_16)
+summary(health.pop.status.pca_17)
+summary(health.pop.status.pca_18)
+summary(health.pop.status.pca_19)
+summary(health.pop.status.pca_20)
+summary(health.pop.status.pca_21)
+
 summary(health.system.status.pca_1)
 summary(health.system.status.pca_2)
 summary(geographic.pca_1)
@@ -498,6 +529,42 @@ health_population_status_dim_9  <-  health.pop.status.pca_9$x %>%
                                     dplyr::rename(health_population_status_dim_9 = PC1)
 
 
+health_population_status_dim_15  <-  health.pop.status.pca_15$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_15 = PC1)
+
+health_population_status_dim_16  <-  health.pop.status.pca_16$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_16 = PC1)
+
+health_population_status_dim_17  <-  health.pop.status.pca_17$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_17 = PC1)
+
+health_population_status_dim_18  <-  health.pop.status.pca_18$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_18 = PC1)
+
+health_population_status_dim_19  <-  health.pop.status.pca_19$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_19 = PC1)
+
+health_population_status_dim_20  <-  health.pop.status.pca_20$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_20 = PC1)
+
+health_population_status_dim_21  <-  health.pop.status.pca_21$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1)  %>% 
+                                    dplyr::rename(health_population_status_dim_21 = PC1)
+
+
 
 health_system_status_dim_1      <-  health.system.status.pca_1$x %>% 
                                     as.data.frame() %>% 
@@ -535,7 +602,8 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                     economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10, house_charact_dim_1, house_charact_dim_2, 
                                     geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4) ,
                               cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7, 
-                                    health_population_status_dim_8, health_population_status_dim_9,     
+                                    health_population_status_dim_8, health_population_status_dim_9,  health_population_status_dim_15,  health_population_status_dim_16,
+                                    health_population_status_dim_17,  health_population_status_dim_18,  health_population_status_dim_19,  health_population_status_dim_20,  health_population_status_dim_21,
                                     health_system_status_dim_1, health_system_status_dim_2, 
                                     social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, health_population_status_dim_10,
                                                                        health_population_status_dim_11, health_population_status_dim_12, health_population_status_dim_13, health_population_status_dim_14,
@@ -549,8 +617,9 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                  geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
                                  health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7, health_population_status_dim_8, health_population_status_dim_9,
-                                 health_population_status_dim_10, health_population_status_dim_11, health_population_status_dim_12,
-                                 health_population_status_dim_13, health_population_status_dim_14,
+                                 health_population_status_dim_10, health_population_status_dim_11, health_population_status_dim_12, health_population_status_dim_13, health_population_status_dim_14,
+                                 health_population_status_dim_15, health_population_status_dim_16, health_population_status_dim_17, health_population_status_dim_18, health_population_status_dim_19,
+                                 health_population_status_dim_20, health_population_status_dim_21,
                                  health_system_status_dim_1, health_system_status_dim_2, health_system_status_dim_3, 
                                  health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6)
                             
