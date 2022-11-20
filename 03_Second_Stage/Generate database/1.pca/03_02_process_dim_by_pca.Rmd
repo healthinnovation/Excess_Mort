@@ -538,6 +538,7 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                     health_population_status_dim_8, health_population_status_dim_9,     
                                     health_system_status_dim_1, health_system_status_dim_2, 
                                     social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, health_population_status_dim_10,
+                                                                       health_population_status_dim_11, health_population_status_dim_12, health_population_status_dim_13, health_population_status_dim_14,
                                                                        health_system_status_dim_3, health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6) ) ,
                               by = c("dep" = "dep") ) %>% 
                    dplyr::select(dep, prov, 
@@ -547,8 +548,9 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                  house_charact_dim_1, house_charact_dim_2,
                                  geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
-                                 health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7,
-                                 health_population_status_dim_8, health_population_status_dim_9, health_population_status_dim_10,
+                                 health_population_status_dim_5, health_population_status_dim_6, health_population_status_dim_7, health_population_status_dim_8, health_population_status_dim_9,
+                                 health_population_status_dim_10, health_population_status_dim_11, health_population_status_dim_12,
+                                 health_population_status_dim_13, health_population_status_dim_14,
                                  health_system_status_dim_1, health_system_status_dim_2, health_system_status_dim_3, 
                                  health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6)
                             
