@@ -139,7 +139,7 @@ Creando la tabla 2:
 ```{r}
 table2_2020_2021        <-      rbind(men_full_2020_21   %>%  dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
                                       women_full_2020_21 %>%  dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp)) %>% 
-                                group_by(year, group_age, sex) %>% summarise(Excess_Deaths = round(sum(n) - sum(E)), 
+                                group_by(group_age, sex) %>% summarise(Excess_Deaths = round(sum(n) - sum(E)), 
                                                                              N = sum(n),
                                                                              E = round(sum(E))) %>% 
                                                                    bind_rows(summarise(., across(where(is.numeric), sum),
@@ -149,14 +149,13 @@ table2_2020_2021        <-      rbind(men_full_2020_21   %>%  dplyr::select(reg,
                                                                                                 group_age ==  "61_80" ~   "61-80",
                                                                                                 group_age ==  "81_more" ~ "Older-81",
                                                                                                 TRUE ~ group_age), 
-                                                                          Period = year,
                                                                           Sex    = factor(sex, levels = c("MASCULINO", "FEMENINO", "all"), labels = c("Men", "Women", "All")),
                                                                           Excess_Deaths_N  = round(Excess_Deaths/N,2), 
                                                                           Excess_Deaths_E = round(Excess_Deaths/E,2)) %>% 
                                                                    ungroup %>% 
-                                                                   dplyr::select(Period, Sex, Age_Group, Excess_Deaths, E, N,
+                                                                   dplyr::select(Sex, Age_Group, Excess_Deaths, E, N,
                                                                                  Excess_Deaths_E, Excess_Deaths_N) %>% 
-                                                                   arrange(Period, Age_Group, Sex)
+                                                                   arrange(Age_Group, Sex)
 ``` 
 
 
