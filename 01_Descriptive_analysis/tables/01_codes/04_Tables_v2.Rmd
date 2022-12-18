@@ -19,10 +19,11 @@ knitr::opts_chunk$set(eval = F, echo = T,
 Llamando a las librerías que se utilizarán:
 ```{r}
 library(tidyverse)
+library(dplyr)
 library(skimr)
 library(xlsx)
 ```
-
+C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort
 
 ## 2. Directorio de trabajo
 
@@ -31,10 +32,9 @@ Se establece el directorio de trabajo:
 main_directory <-  "C:/Users/braul/Desktop/02_projects/01_GITHUB/Excess_Mort"
 
 input   <- paste(main_directory, sep="", "/03_Second_Stage/Generate database/2.output_db") 
-output  <- paste(main_directory, sep="", "/6. Output")
-figures <- paste(output, sep="", "/figures")
-tables  <- paste(output, sep="", "/01_Descriptive_analysis/tables/02_output")
-moran   <- paste(output, sep="", "/test_moran_global")
+figures <- paste(main_directory, sep="", "/figures")
+tables  <- paste(main_directory, sep="", "/01_Descriptive_analysis/tables/02_output")
+moran   <- paste(main_directory, sep="", "/test_moran_global")
 ```
 
 
@@ -61,35 +61,32 @@ women_full_2020_21 <- rbind(women_full_2020   %>% dplyr::select(reg, prov, year,
 ```
 
 
-
-
 ## 4. Tablas
 ### 4.1. Tabla 1
 
 Creando partes de la tabla (total, hombres y mujeres):
-
 ```{r}
-men_2020_21_table1  <-   men_full_2020_21  %>% group_by(reg) %>% summarise(Total_men  = sum(n), 
+men_2020_21_table1  <-   men_full_2020_21  %>% group_by(reg) %>% dplyr::summarise(Total_men  = sum(n), 
                                                                         E_men      = round(sum(E)), 
                                                                         Excess_men = round(sum(n) - sum(E)), 
                                                                         Upp_men    = round(sum(n) - sum(low)), 
                                                                         Low_men    = round(sum(n) - sum(upp))) %>% 
-                                                                 bind_rows(summarise(., across(where(is.numeric), sum),
+                                                                 bind_rows(dplyr::summarise(., across(where(is.numeric), sum),
                                                                                      across(where(is.character), ~"PERÚ"))) %>%
-                                                                 mutate(Excess_men1     = paste(round(Excess_men)," (",round(Low_men), " ","to",
+                                                                 dplyr::mutate(Excess_men1     = paste(round(Excess_men)," (",round(Low_men), " ","to",
                                                                                              " ", round(Upp_men),")", sep =""), 
                                                                         Excess_men_perc = round((Total_men-E_men)/E_men,3), 
                                                                         Excess_rate_men = round((Total_men-E_men)/Total_men,3) ) 
 
 
-women_2020_21_table1  <- women_full_2020_21 %>% group_by(reg) %>% summarise(Total_women  = sum(n), 
+women_2020_21_table1  <- women_full_2020_21 %>% group_by(reg) %>% dplyr::summarise(Total_women  = sum(n), 
                                                                       E_women      = round(sum(E)), 
                                                                       Excess_women = round(sum(n) - sum(E)), 
                                                                       Upp_women    = round(sum(n) - sum(low)), 
                                                                       Low_women    = round(sum(n) - sum(upp))) %>% 
-                                                                  bind_rows(summarise(., across(where(is.numeric), sum),
+                                                                  bind_rows(dplyr::summarise(., across(where(is.numeric), sum),
                                                                                          across(where(is.character), ~"PERÚ"))) %>%
-                                                                  mutate(Excess_women1     = paste(round(Excess_women)," (",round(Low_women), " ","to",
+                                                                 mutate(Excess_women1     = paste(round(Excess_women)," (",round(Low_women), " ","to",
                                                                                                  " ", round(Upp_women),")", sep =""), 
                                                                          Excess_women_perc = round((Total_women-E_women)/E_women,3), 
                                                                          Excess_rate_women = round((Total_women-E_women)/Total_women,3)  ) 
@@ -97,12 +94,12 @@ women_2020_21_table1  <- women_full_2020_21 %>% group_by(reg) %>% summarise(Tota
 
 both_2020_21_table1 <- rbind(men_full_2020_21   %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
                              women_full_2020_21 %>% dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp))  %>%  group_by(reg) %>%  
-                                                           summarise (Total  = sum(n), 
+                                                    dplyr::summarise (Total  = sum(n), 
                                                                       E_grl  = round(sum(E)), 
                                                                       Excess = round(sum(n) - sum(E)), 
                                                                       Upp    = round(sum(n) - sum(low)), 
                                                                       Low    = round(sum(n) - sum(upp))) %>% 
-                                                           bind_rows(summarise(., across(where(is.numeric), sum),
+                                                           bind_rows(dplyr::summarise(., across(where(is.numeric), sum),
                                                                                   across(where(is.character), ~"PERÚ"))) %>%
                                                            mutate(Excess1     = paste(round(Excess)," (",round(Low), " ","to",
                                                                                           " ", round(Upp),")", sep =""), 
@@ -115,7 +112,7 @@ Obteniendo la tabla 1 (versión 1):
 table1_2020_21_v1    <- both_2020_21_table1 %>% dplyr::select(-c(Excess, Low, Upp)) %>% 
                         left_join(men_2020_21_table1   %>%  dplyr::select(-c(Excess_men,   Low_men, Upp_men)), by = c("reg" = "reg"))     %>% 
                         left_join(women_2020_21_table1 %>%  dplyr::select(-c(Excess_women, Low_women, Upp_women)), by = c("reg" = "reg")) %>%
-                        rename(Abs_excess = Excess1, Abs_excess_men = Excess_men1, Abs_excess_women = Excess_women1, Relative_excess = Excess_perc,   
+                        dplyr::rename(Abs_excess = Excess1, Abs_excess_men = Excess_men1, Abs_excess_women = Excess_women1, Relative_excess = Excess_perc,   
                                Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
 
 colSums(is.na(table1_2020_21_v1))
@@ -127,7 +124,7 @@ Obteniendo la tabla 1 (versión 2):
 table1_2020_21_v2    <- both_2020_21_table1 %>% dplyr::select(-c(Excess1)) %>% 
                         left_join(men_2020_21_table1   %>%  dplyr::select(-c(Excess_men1))  , by = c("reg" = "reg")) %>% 
                         left_join(women_2020_21_table1 %>%  dplyr::select(-c(Excess_women1)), by = c("reg" = "reg")) %>% 
-                        rename(Abs_excess = Excess, Abs_excess_men = Excess_men, Abs_excess_women = Excess_women, Relative_excess = Excess_perc,   
+                        dplyr::rename(Abs_excess = Excess, Abs_excess_men = Excess_men, Abs_excess_women = Excess_women, Relative_excess = Excess_perc,   
                                Relative_excess_men  = Excess_men_perc, Relative_excess_women = Excess_women_perc )
 
 colSums(is.na(table1_2020_21_v2))
@@ -139,10 +136,10 @@ Creando la tabla 2:
 ```{r}
 table2_2020_2021        <-      rbind(men_full_2020_21   %>%  dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp), 
                                       women_full_2020_21 %>%  dplyr::select(reg, prov, year, week, sex, group_age, n, E, low, upp)) %>% 
-                                group_by(group_age, sex) %>% summarise(Excess_Deaths = round(sum(n) - sum(E)), 
+                                group_by(group_age, sex) %>%  dplyr::summarise(Excess_Deaths = round(sum(n) - sum(E)), 
                                                                              N = sum(n),
                                                                              E = round(sum(E))) %>% 
-                                                                   bind_rows(summarise(., across(where(is.numeric), sum),
+                                                                   bind_rows(dplyr::summarise(., across(where(is.numeric), sum),
                                                                                           across(where(is.character), ~"all"))) %>% 
                                                                    mutate(Age_Group = case_when(group_age ==  "40_less" ~ "0-40", 
                                                                                                 group_age ==  "41_60" ~   "41-60", 
@@ -158,6 +155,11 @@ table2_2020_2021        <-      rbind(men_full_2020_21   %>%  dplyr::select(reg,
                                                                    arrange(Age_Group, Sex)
 ``` 
 
+```{r}
+a <-  women_full_2020_21 %>% mutate (pr_obes = as.numeric(NA), pr_tos = as.numeric(NA)) %>% dplyr::select(all_of(variables))
+```
+
+
 
 ### 4.3. Tabla 3 (2020 y 2021)
 Creando insumo principal de la tabla 3
@@ -167,8 +169,19 @@ Creando insumo principal de la tabla 3
                       "group_age_61_80", "group_age_81_more", "pr_edu_inf_25",
                       "pr_no_bl_mz", "pr_liv_oth_distr", "pr_edu_oth_distr", "pr_insu", 
                       "pr_one_hab", "INEI_prop_No_techo_concreto", "pr_obes", "pr_tos")
+
+men_full_2020_21 <- rbind(men_full_2020   %>% dplyr::select(all_of(variables)), 
+                          men_full_2021    %>% dplyr::select(all_of(variables))) %>% 
+                    filter(between(date, as.Date("2020-03-02"), as.Date("2021-02-22")))
+
+women_full_2020_21 <- rbind(women_full_2020   %>% dplyr::select(all_of(variables)), 
+                            women_full_2021   %>% dplyr::select(all_of(variables))) %>% 
+                      filter(between(date, as.Date("2020-03-02"), as.Date("2021-02-22")))
+
 table3_2020_2021  <- rbind(women_full_2020_21 %>% mutate (pr_obes = as.numeric(NA), pr_tos = as.numeric(NA)) %>% dplyr::select(all_of(variables)), 
                            men_full_2020_21   %>% mutate (pr_obes = as.numeric(NA), pr_tos = as.numeric(NA)) %>% dplyr::select(all_of(variables))) 
+
+
 ```
 
 Elaborando la tabla 3
@@ -205,20 +218,14 @@ table3 <- table3_2020_2021 %>% dplyr::select(n, pr_edu_inf_25,pr_no_bl_mz, pr_in
 ## 5. Exportación de tablas
 
 ```{r}  
-saveRDS    (table1_2020_v1, file.path(tables, "table1_2020_v1.rds"))
-#write.xlsx(table1_2020_v1, file.path(tables, "table1_2020_v1..xlsx"))
+saveRDS    (table1_2020_21_v1, file.path(tables, "table1_2020_21_v1.rds"))
+write.xlsx(table1_2020_21_v1, file.path(tables, "table1_2020_21_v1..xlsx"))
 
-saveRDS    (table1_2021_v1,   file.path(tables, "table1_2021_v1.rds"))
-#write.xlsx(table1_2021_v1, file.path(tables, "table1_2021_v1..xlsx"))
-
-saveRDS    (table1_2020_v2,   file.path(tables, "table1_2020_v2.rds"))
-#write.xlsx(table1_2020_v2, file.path(tables, "table1_2020_v2..xlsx"))
-
-saveRDS    (table1_2021_v2,   file.path(tables, "table1_2021_v2.rds"))
-#write.xlsx(table1_2021_v2, file.path(tables, "table1_2021_v2..xlsx"))
+saveRDS    (table1_2020_21_v2,   file.path(tables, "table1_2020_21_v2.rds"))
+write.xlsx(table1_2020_21_v2, file.path(tables, "table1_2020_21_v2..xlsx"))
 
 saveRDS    (table2_2020_2021, file.path(tables, "table2_2020_2021.rds"))
-#write.xlsx(table2_2020_2021, file.path(tables, "table2_2020_2021..xlsx"))
+write.xlsx(table2_2020_2021, file.path(tables, "table2_2020_2021..xlsx"))
 
 #saveRDS    (table3,           file.path(tables, "table3_2020_2021.rds"))
 #write.xlsx (table3,           file.path(tables, "table3_2020_2021..xlsx"))
