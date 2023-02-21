@@ -89,40 +89,10 @@ list_excess_m_7.n.1.0 <- c(
                               education_dim                       +       
                               demographics_dim                    +  
                               house_charact_dim_1                 +
-                              dynamic_population_dim_3            +
-                              economic_dim_6                      +
-                              geographic_dim_1                    +
-                              health_population_status_dim_5        , 
+                              dynamic_population_dim_1            +
+                              economic_dim_4                      +
+                              health_population_status_dim_6        
 
-          formula =  n ~      group_age_41_60                     +
-                              group_age_61_80                     +
-                              group_age_81_more                   +
-                              f(week,model="rw1")                 +  #rw1/rw2
-                              f(inla.group(prcp),model="rw1")     +  #rw1/rw2
-                              f(inla.group(temp),model="rw1")     +  #rw1/rw2
-                              f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +       
-                              demographics_dim                    +  
-                              house_charact_dim_1                 +
-                              dynamic_population_dim_3            +
-                              economic_dim_6                      +
-                              geographic_dim_1                    +
-                              health_population_status_dim_6        ,
- 
-          formula =  n ~      group_age_41_60                     +
-                              group_age_61_80                     +
-                              group_age_81_more                   +
-                              f(week,model="rw1")                 +  #rw1/rw2
-                              f(inla.group(prcp),model="rw1")     +  #rw1/rw2
-                              f(inla.group(temp),model="rw1")     +  #rw1/rw2
-                              f(id.sp,model="bym",graph=W.peru)   +  #bym                  (/ besagproper)
-                              education_dim                       +       
-                              demographics_dim                    +  
-                              house_charact_dim_1                 +
-                              dynamic_population_dim_3            +
-                              economic_dim_6                      +
-                              geographic_dim_1                    +
-                              health_population_status_dim_7      
           
               )
 
@@ -134,14 +104,14 @@ names(list_excess_m_7.n.1.0) <- list_excess_m_7.n.1.0
 tic()
 
 test_excess_7.n.1.m <- list_excess_m_7.n.1.0 %>% 
-                             purrr::map(~inla.batch.predict.bru.full.safe(formula = .,
+                             purrr::map(~inla.batch.predict.bru.safe(formula = .,
                                                              dat1 = db_men_fulldim_2021)) # men women
 toc()
 
 
 # 4.2. Exportación
 tic()
-saveRDS(test_excess_7.n.1.m, file.path(output,"test_excess_7_n_1_0_excess_m_2021.rds")) #m for men / wm for women
+saveRDS(test_excess_7.n.1.m, file.path(output,"test_excess_2023_6_n_1_0_excess_m_2021.rds")) #m for men / wm for women
 toc()
 ```
 
@@ -176,7 +146,7 @@ list_excess_w_7.n.1.0 <- c(
                               dynamic_population_dim_2            +
                               economic_dim_6                      +
                               geographic_dim_1                    +
-                              health_system_status_dim_4                          
+                              health_system_status_dim_6                        
           )
 
 
@@ -188,14 +158,14 @@ names(list_excess_w_7.n.1.0) <- list_excess_w_7.n.1.0
 tic()
 
 test_excess_7.n.1.w <- list_excess_w_7.n.1.0 %>% 
-                             purrr::map(~inla.batch.predict.bru.full.safe(formula = .,
+                             purrr::map(~inla.batch.predict.bru.safe(formula = .,
                                                              dat1 = db_women_fulldim_2021)) # men women
 toc()
 
 
 # 4.2. Exportación
 tic()
-saveRDS(test_excess_7.n.1.w, file.path(output,"best_test_excess_7_n_1_0_excess_w_2021_full.rds")) #m for men / wm for women
+saveRDS(test_excess_7.n.1.w, file.path(output,"test_excess_2023_6_n_1_0_excess_w_2021.rds")) #m for men / wm for women
 toc()
 ```
 
