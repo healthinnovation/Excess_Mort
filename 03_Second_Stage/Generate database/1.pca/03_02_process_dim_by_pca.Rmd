@@ -27,6 +27,7 @@ output <- paste(main, sep = "", "/1.pca/02_output")
 
 #3. Importación
 
+
 ```{r,message=F,warning=F,eval=F}
 
 source("excess_functions.R")
@@ -65,11 +66,19 @@ social.dets  <- readRDS(file.path(input,"vulnr_df_prov.rds"))         %>%
                         economic_dim_3               = as.numeric(scale.default(pr_insu)),
                         health_system_status_dim_10  = as.numeric(scale.default(pr_insu)),
                         economic_dim_4               = as.numeric(scale.default(pr_pov_2018)),
-                        economic_dim_5               = as.numeric(scale.default(pr_NBI))
+                        economic_dim_5               = as.numeric(scale.default(pr_NBI)),
+                        economic_dim_34              = as.numeric(scale.default(pr_no_trabajo_pago)),
+                        economic_dim_35              = as.numeric(scale.default(pr_si_buscajob)),
+                        dynamic_population_dim_25    = as.numeric(scale.default(pr_edu_oth_distr)),
+                        dynamic_population_dim_26    = as.numeric(scale.default(pr_wrk_oth_distr)),
+                        dynamic_population_dim_27    = as.numeric(scale.default(pr_liv_oth_distr)),
+                        dynamic_population_dim_28    = as.numeric(scale.default(pr_no_vehiculo))
                 ) %>% 
                 left_join(readRDS(file.path(main,"geo_measure.rds"))    %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov") ) %>% 
-                left_join(readRDS(file.path(main,"economics_2017.rds")) %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov", "ubigeo" = "ubigeo"))
-
+                left_join(readRDS(file.path(main,"economics_2017.rds")) %>% dplyr::rename(dep = reg), by = c("dep" = "dep", "prov" = "prov", "ubigeo" = "ubigeo")) %>% 
+                mutate( economic_dim_32              = as.numeric(scale.default(PIBpc)),
+                        economic_dim_33              = as.numeric(scale.default(PIBkm2))
+                )
                                                                     
 
 ####################################################
@@ -109,13 +118,13 @@ social.dets.dep <- readRDS(file.path(input,"social_dets_dep.rds"))              
                         health_system_status_dim_6      = as.numeric(scale.default(pr_salud_presupuesto)),
                         health_system_status_dim_7      = as.numeric(scale.default(prop_camas_hosp_disponible)),                                                                     
                         health_system_status_dim_8      = as.numeric(scale.default(prop_uci_cama_disponible)),
-                        health_system_status_dim_9      = as.numeric(scale.default(prop_ventiladores_uci_disponible))                                                                     
+                        health_system_status_dim_9      = as.numeric(scale.default(prop_ventiladores_uci_disponible)),
+                        dynamic_population_dim_29       = as.numeric(scale.default(Prop_vuelos_entrantes)),                        
                         )
 
 ####################################################
 
 ```
-
 
 
 
@@ -137,6 +146,13 @@ dynamic.population.pca_3             <- prcomp(
                                         left_join( social.dets     %>% select(dep, prov, pr_edu_oth_distr, pr_wrk_oth_distr),
                                                    social.dets.dep %>% select(dep, Prop_vuelos_entrantes), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
                                         center = TRUE, scale. = TRUE)
+
+#######################################
+
+
+
+######################################
+
 
 economic.pca_1                       <- prcomp(social.dets     %>% 
                                         select(pr_insu, pr_pov_2018), center = TRUE,scale. = TRUE) 
@@ -163,6 +179,82 @@ economic.pca_9                       <- prcomp(social.dets     %>%
 economic.pca_10                       <- prcomp(social.dets     %>% 
                                         select(pr_pov_2018, PIBpc), center = TRUE,scale. = TRUE) 
 
+
+######################################################################################################
+
+economic.pca_11                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_NBI, pr_pov_2018), center = TRUE,scale. = TRUE) 
+
+economic.pca_12                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_si_buscajob, pr_pov_2018), center = TRUE,scale. = TRUE) 
+
+economic.pca_13                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_si_buscajob, pr_NBI), center = TRUE,scale. = TRUE) 
+
+economic.pca_14                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_NBI), center = TRUE,scale. = TRUE) 
+
+economic.pca_15                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_no_trabajo_pago, pr_NBI), center = TRUE,scale. = TRUE) 
+
+economic.pca_16                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_no_trabajo_pago, pr_si_buscajob, pr_pov_2018), center = TRUE,scale. = TRUE) 
+
+economic.pca_17                      <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_NBI, pr_pov_2018, pr_no_trabajo_pago, pr_si_buscajob), center = TRUE,scale. = TRUE) 
+
+economic.pca_18                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_insu, pr_NBI),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_19                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_NBI),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_20                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_pov_2018, pr_NBI),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_21                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, employment), center = TRUE,scale. = TRUE) 
+
+economic.pca_22                       <- prcomp(social.dets     %>% 
+                                        select(pr_NBI, pr_pov_2018, employment), center = TRUE,scale. = TRUE) 
+
+economic.pca_23                       <- prcomp(  
+                                        left_join( social.dets     %>% select(dep, prov, pr_pov_2018, employment),
+                                                   social.dets.dep %>% select(dep, PBI_per_capita), by = c("dep" = "dep") ) %>% select(-c(dep, prov)),
+                                        center = TRUE, scale. = TRUE)
+
+economic.pca_24                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_no_trabajo_pago, pr_pov_2018, PIBkm2), center = TRUE,scale. = TRUE) 
+
+economic.pca_25                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, PIBkm2), center = TRUE,scale. = TRUE) 
+
+economic.pca_26                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_no_trabajo_pago, PIBkm2), center = TRUE,scale. = TRUE) 
+
+economic.pca_27                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, pr_NBI,PIBkm2), center = TRUE,scale. = TRUE) 
+
+economic.pca_28                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, PIBkm2), center = TRUE,scale. = TRUE) 
+
+economic.pca_29                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_pov_2018, PIBpc), center = TRUE,scale. = TRUE) 
+
+economic.pca_30                       <- prcomp(social.dets     %>% 
+                                        select(pr_insu, pr_no_trabajo_pago, pr_pov_2018, PIBpc), center = TRUE,scale. = TRUE) 
+
+economic.pca_31                       <- prcomp(social.dets     %>% 
+                                        select(pr_pov_2018, pr_NBI, PIBpc), center = TRUE,scale. = TRUE) 
+
+
+######################################################################################################
 
 
 house.characteristics.pca_1          <- prcomp(social.dets     %>% 
@@ -549,6 +641,114 @@ economic_dim_10                 <-  economic.pca_10$x %>%
                                     select(PC1) %>% 
                                     dplyr::rename(economic_dim_10  = PC1)
 
+###########################################################################
+economic_dim_11                 <-  economic.pca_11$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_11  = PC1)
+
+economic_dim_12                 <-  economic.pca_12$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_12  = PC1)
+
+economic_dim_13                 <-  economic.pca_13$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_13  = PC1)
+
+economic_dim_14                 <-  economic.pca_14$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_14  = PC1)
+
+economic_dim_15                 <-  economic.pca_15$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_15  = PC1)
+
+economic_dim_16                 <-  economic.pca_16$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_16  = PC1)
+
+economic_dim_17                 <-  economic.pca_17$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_17  = PC1)
+
+economic_dim_18                 <-  economic.pca_18$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_18  = PC1)
+
+economic_dim_19                 <-  economic.pca_19$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_19  = PC1)
+
+economic_dim_20                 <-  economic.pca_20$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_20  = PC1)
+
+economic_dim_21                 <-  economic.pca_21$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_21  = PC1)
+
+economic_dim_22                 <-  economic.pca_22$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_22  = PC1)
+
+economic_dim_23                 <-  economic.pca_23$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_23  = PC1)
+
+economic_dim_24                 <-  economic.pca_24$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_24  = PC1)
+
+economic_dim_25                 <-  economic.pca_25$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_25  = PC1)
+
+economic_dim_26                 <-  economic.pca_26$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_26  = PC1)
+
+economic_dim_27                 <-  economic.pca_27$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_27  = PC1)
+
+economic_dim_28                 <-  economic.pca_28$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_28  = PC1)
+
+economic_dim_29                 <-  economic.pca_29$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_29  = PC1)
+
+economic_dim_30                 <-  economic.pca_30$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_30  = PC1)
+
+economic_dim_31                 <-  economic.pca_31$x %>% 
+                                    as.data.frame() %>% 
+                                    select(PC1) %>% 
+                                    dplyr::rename(economic_dim_31  = PC1)
+
+############################################################################
+
 
 house_charact_dim_1             <-  house.characteristics.pca_1$x %>% 
                                     as.data.frame() %>% 
@@ -719,7 +919,10 @@ geographic_dim_4                <-  geographic.pca_4$x %>%
 
 
 social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, economic_dim_1, economic_dim_2, economic_dim_6,
-                                    economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10, house_charact_dim_1, house_charact_dim_2, 
+                                    economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10, economic_dim_11, economic_dim_12, economic_dim_13, economic_dim_14,economic_dim_15, 
+                                    economic_dim_16, economic_dim_17, economic_dim_18, economic_dim_19, economic_dim_20, economic_dim_21, economic_dim_22, economic_dim_23,economic_dim_24,economic_dim_25,                           
+                                    economic_dim_26, economic_dim_27, economic_dim_28, economic_dim_29, economic_dim_30, economic_dim_31,                                     
+                                    house_charact_dim_1, house_charact_dim_2, 
                                     geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4, 
                                     health_system_status_dim_18, health_system_status_dim_19, health_system_status_dim_20, health_system_status_dim_21) ,
                               cbind(health_population_status_dim_1,health_population_status_dim_2, health_population_status_dim_6, health_population_status_dim_7, 
@@ -730,12 +933,16 @@ social.dets.pca <- left_join( cbind(social.dets, dynamic_population_dim_1, dynam
                                     social.dets.dep %>%  dplyr::select(dep, health_population_status_dim_3, health_population_status_dim_4, health_population_status_dim_5, health_population_status_dim_10,
                                                                        health_population_status_dim_11, health_population_status_dim_12, health_population_status_dim_13, health_population_status_dim_14,
                                                                        health_system_status_dim_3, health_system_status_dim_4, health_system_status_dim_5, health_system_status_dim_6,health_system_status_dim_7,
-                                                                       health_system_status_dim_8, health_system_status_dim_9)) ,
+                                                                       health_system_status_dim_8, health_system_status_dim_9, dynamic_population_dim_29)) ,
                               by = c("dep" = "dep") ) %>% 
                    dplyr::select(dep, prov, 
                                  education_dim, demographics_dim, 
-                                 dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, 
+                                 dynamic_population_dim_1, dynamic_population_dim_2, dynamic_population_dim_3, dynamic_population_dim_25, dynamic_population_dim_26, dynamic_population_dim_27, 
+                                 dynamic_population_dim_28, dynamic_population_dim_29,
                                  economic_dim_1, economic_dim_2, economic_dim_3, economic_dim_4, economic_dim_5, economic_dim_6, economic_dim_7, economic_dim_8, economic_dim_9, economic_dim_10,
+                                 economic_dim_11, economic_dim_12, economic_dim_13, economic_dim_14, economic_dim_15, economic_dim_16, economic_dim_17, economic_dim_18, economic_dim_19, economic_dim_20,
+                                 economic_dim_21, economic_dim_22, economic_dim_23, economic_dim_24, economic_dim_25, economic_dim_26, economic_dim_27, economic_dim_28, economic_dim_29, economic_dim_30, economic_dim_31,
+                                 economic_dim_32, economic_dim_33, economic_dim_34, economic_dim_35,
                                  house_charact_dim_1, house_charact_dim_2,
                                  geographic_dim_1, geographic_dim_2, geographic_dim_3, geographic_dim_4,
                                  health_population_status_dim_1, health_population_status_dim_2, health_population_status_dim_3, health_population_status_dim_4,
